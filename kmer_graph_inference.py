@@ -164,6 +164,7 @@ def _get_structrual_edge_read(chromosome, edge, bam, direction):
     read_set = set()
     # add 1 and subtract 1 to deal with ins egdes with same start and end pos
     for read in bam.fetch(chromosome, edge[0]-1, edge[1]+1):
+        read_pos = 0
         current_interval_start = read.reference_start
         current_interval_end = read.reference_start
         print "start"
@@ -173,11 +174,16 @@ def _get_structrual_edge_read(chromosome, edge, bam, direction):
         print current_interval_start, current_interval_end
         for op, count in read.cigartuples:
             print op, count
-            if op == CigarOp.MATCH or op == CigarOp.DEL or op == CigarOp.REF_SKIP:
+            if op == CigarOp.MATCH:
+                current_interval_start = current_interval_end
+                current_interval_end = current_interval_end + count
+                read_pos += count
+            elif op == CigarOp.DEL or op == CigarOp.REF_SKIP:
                 current_interval_start = current_interval_end
                 current_interval_end = current_interval_end + count
             elif op == CigarOp.INS or op == CigarOp.SOFT_CLIP:
                 current_interval_start = current_interval_end
+                read_pos += count
             else:
                 print('Unexpected cigar op {0}'.format(op))
 
@@ -194,6 +200,13 @@ def _get_structrual_edge_read(chromosome, edge, bam, direction):
                 break
             if edge[0] == edge[1] and current_interval_start == edge[0] and current_interval_end == edge[1] and \
                     op == CigarOp.INS:
+                print read.query_sequence[read_pos - count:read_pos].upper()
+                print type(read.query_sequence[read_pos - count:read_pos].upper())
+                print edge[2]
+                print type(edge[2])
+                print read.query_sequence[read_pos - count:read_pos].upper() == edge[2]
+            if edge[0] == edge[1] and current_interval_start == edge[0] and current_interval_end == edge[1] and \
+                    op == CigarOp.INS and read.query_sequence[read_pos - count:read_pos].upper() == edge[2]:
                 print "found ins feature"
                 read_set.add(read.query_name)
                 break
