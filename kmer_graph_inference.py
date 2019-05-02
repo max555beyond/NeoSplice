@@ -681,7 +681,7 @@ def main():
     HLA_II_string = "DRB1_1601"
 
     sample = args.sample
-    chromosome = "chr" + args.chromosome
+    chromosome = args.chromosome
     bam_file = args.bam_file
     gff_in_file = args.gff_file
     tumor_junction_file = args.tumor_junction_file
