@@ -1139,6 +1139,7 @@ def main():
     run_netMHCpan(sample, chromosome, length, HLA_string, HLA_II_string, neoantigen_path, netMHCpan_path,
                   netMHCIIpan_path)
     combine_table(sample, neoantigen_path, length, chromosome)
+    logging.info("Done!")
 
 
 if __name__ == '__main__':
