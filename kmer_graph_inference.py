@@ -79,14 +79,16 @@ def contain_stop_codon(seq):
         return False
 
 
-def run_netMHCpan(sample, length, HLA_string, HLA_II_string, path, netMHCpan_path, netMHCIIpan_path):
+def run_netMHCpan(sample, chromosome, length, HLA_string, HLA_II_string, path, netMHCpan_path, netMHCIIpan_path):
     if 8 <= length <= 11:
-        subprocess.call('{} -f {}{}_outcome_peptide_{}.fasta -BA -l {} -xls  -xlsfile {}{}_peptide_{}.xls -a {}'.format(
-            netMHCpan_path, path, sample, length, length, path, sample, length, HLA_string), shell=True, stdout=None)
+        subprocess.call(
+            '{} -f {}{}_outcome_peptide_{}_{}.fasta -BA -l {} -xls  -xlsfile {}{}_peptide_{}_{}.xls -a {}'.format(
+                netMHCpan_path, path, sample, chromosome, length, length, path, sample, chromosome, length, HLA_string),
+            shell=True, stdout=None)
     elif 15 <= length <= 24:
         subprocess.call(
-            '{} -f {}{}_outcome_peptide_{}.fasta -length {} -xls  -xlsfile {}{}_peptide_{}.xls -a {}'.format(
-                netMHCIIpan_path, path, sample, length, length, path, sample, length,
+            '{} -f {}{}_outcome_peptide_{}_{}.fasta -length {} -xls  -xlsfile {}{}_peptide_{}_{}.xls -a {}'.format(
+                netMHCIIpan_path, path, sample, chromosome, length, length, path, sample, chromosome, length,
                 HLA_II_string), shell=True, stdout=None)
 
 
@@ -622,8 +624,8 @@ def output_peptide(mut_peptide, mut_sequence, result_file, fasta_file, length, u
             generated_peptides.add(mut_peptide[i:i+length])
 
 
-def combine_table(sample, neoantigen_path, length):
-    MHC_file = open(neoantigen_path + '{}_peptide_{}.xls'.format(sample, length), "r")
+def combine_table(sample, neoantigen_path, length, chromosome):
+    MHC_file = open(neoantigen_path + '{}_peptide_{}_{}.xls'.format(sample, chromosome, length), "r")
     dat_MHC = [row for row in MHC_file]
     MHC_file.close()
     HLA_alleles = re.split('\t+', dat_MHC[0].strip())
@@ -632,7 +634,7 @@ def combine_table(sample, neoantigen_path, length):
     else:
         NMposition = 4
     for HLA in HLA_alleles:
-        file_MHC = open(neoantigen_path + '{}_peptide_MHC_{}.xls'.format(sample, length), "w")
+        file_MHC = open(neoantigen_path + '{}_peptide_MHC_{}_{}.xls'.format(sample, chromosome, length), "w")
         file_MHC.write(('{}Nm'.format(HLA) + '\t' + '{}binding property'.format(HLA)) + '\n')
         current_line = 2
 
@@ -650,13 +652,13 @@ def combine_table(sample, neoantigen_path, length):
         file_MHC.close()
         NMposition += 5
         subprocess.call(
-            'paste {}{}_outcome_peptide_{}.txt {}{}_peptide_MHC_{}.xls > {}{}temp_outcome_peptide_{}.txt'.format(
-                neoantigen_path, sample, length, neoantigen_path, sample, length,
-                neoantigen_path, sample, length), shell=True)
+            'paste {}{}_outcome_peptide_{}_{}.txt {}{}_peptide_MHC_{}_{}.xls > {}{}temp_outcome_peptide_{}_{}.txt'.format(
+                neoantigen_path, sample, chromosome, length, neoantigen_path, sample, chromosome, length,
+                neoantigen_path, sample,  chromosome, length), shell=True)
         subprocess.call(
-            'paste {}{}_outcome_peptide_{}.txt {}{}temp_outcome_peptide_{}.txt > {}{}_outcome_peptide_{}.txt'.format(
-                neoantigen_path, sample, length, neoantigen_path, sample, length,
-                neoantigen_path, sample, length), shell=True)
+            'paste {}{}_outcome_peptide_{}_{}.txt {}{}temp_outcome_peptide_{}_{}.txt > {}{}_outcome_peptide_{}_{}.txt'.format(
+                neoantigen_path, sample, chromosome, length, neoantigen_path, sample, chromosome, length,
+                neoantigen_path, sample, chromosome, length), shell=True)
 
 
 def main():
@@ -1134,8 +1136,9 @@ def main():
 
     output_file.close()
     fasta_file.close()
-    run_netMHCpan(sample, length, HLA_string, HLA_II_string, neoantigen_path, netMHCpan_path, netMHCIIpan_path)
-    combine_table(sample, neoantigen_path, length)
+    run_netMHCpan(sample, chromosome, length, HLA_string, HLA_II_string, neoantigen_path, netMHCpan_path,
+                  netMHCIIpan_path)
+    combine_table(sample, neoantigen_path, length, chromosome)
 
 
 if __name__ == '__main__':
