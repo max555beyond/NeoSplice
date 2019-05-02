@@ -248,7 +248,6 @@ def find_path_annotated(graph_outer, start_node_outer, target_node, annotated_sp
         return possible_path_list, possible_seq_list
 
     def path(graph, start_node, target_node, annotated_splices, direction):
-
         if start_node == target_node:
             if direction == -1:
                 consecutive_path = tuple(paths[::-1])
@@ -698,7 +697,7 @@ def main():
         os.makedirs(neoantigen_path, 0777)
 
     output_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.txt".format(sample, chromosome, length), 'w')
-    output_file.write("Variant_peptide_sequence\tDNA_sequence\tChromosome\tPeptide_graph_path\tFull_graph_path\tFull_graph_seq\tTumor_splice\tStrand\n")
+    output_file.write("Variant_peptide_sequence\tDNA_sequence\tChromosome\tPeptide_graph_path\tFull_graph_path\tFull_graph_seq\tTumor_splice\tStrand\tGene\n")
     fasta_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.fasta".format(sample, chromosome, length), 'w')
 
     generated_peptides = set()
@@ -732,6 +731,8 @@ def main():
     unique_path_splices = collections.defaultdict(set)
     validated_path = {}
     splice_subgraph = {}
+
+    logging.info("reading kmers")
 
     for kmer in kmer_dat.fetch(chromosome):
         novel_splices = retrieve_splice_edge(kmer)
@@ -767,9 +768,14 @@ def main():
             unique_path_edges[tuple(path_edges)].add(kmer.query_name)
             unique_path_splices[tuple(path_edges)].add(novel_splice)
 
-    for unique_path in unique_path_edges:
+    logging.info("found {} unique kmer paths".format(len(unique_path_edges)))
+
+    for kmer_num, unique_path in enumerate(unique_path_edges):
+        logging.info("processing kmer {}".format(kmer_num))
+
         if len(unique_path_edges[unique_path]) < 10:
             continue
+
         novel_splices = unique_path_splices[unique_path]
         read_set = unique_path_edges[unique_path]
         unique_path = tuple([edge[:3] + (len(unique_path_edges[unique_path]),) + edge[4:] for edge in unique_path])
@@ -1024,7 +1030,6 @@ def main():
                                                graph_path, graph_seq, annotated_transcripts[transcript].genename[0])
 
                         elif len(full_upstream_paths) and not len(full_downstream_paths):
-
                             for full_upstream_path, full_upstream_seq, supported_upstream_seq in zip(
                                     full_upstream_paths, full_upstream_seqs, supported_upstream_seqs):
                                 graph_path = tuple([edge[:4] for edge in unique_path]) + full_upstream_path
