@@ -78,63 +78,42 @@ samfile = pysam.AlignmentFile(args.input_bam_file, "rb")
 kmer_reads = pysam.AlignmentFile(args.out_bam_file, "wb", template=samfile)
 
 trie = Trie()
+
 with open(args.Kmer_file) as f:
     for line in f:
         line_split = line.strip().split('\t')
         trie.add(line_split[0])
-print trie.pattern()
-pattern = re.compile(trie.pattern())
-#pattern = re.compile("\*")
 
-#i = 0
+pattern = re.compile(trie.pattern())
+
 for read in samfile.fetch():
-#    i+=1
-#    if i > 100000:
-#        break
     if not read.is_unmapped and not read.is_secondary and read.is_proper_pair and read.is_paired and\
             not read.is_duplicate and not read.is_supplementary:
 
         found = pattern.search(read.query_sequence)
         if not found:
             continue
-        print read.query_name
+
         start_index = found.start()
         end_index = found.end()
         quality_sring = read.to_string().split('\t')[10][start_index:end_index]
 
-        print "start " + str(start_index)
-        print "end " + str(end_index)
-        #print len(read.query_qualities)
-        #print read.query_qualities[start_index:end_index]
-
-        print "original sequence " + str(read.query_sequence)
-        print "original quality " + str(read.to_string().split('\t')[10])
-        print read.to_string().split('\t')[10][start_index:end_index]
         read.query_sequence = read.query_sequence[start_index:end_index]
-        print "new seq " + read.query_sequence
-
 
         current_ind = 0
         in_kmer = False
         cigarString_temp = ""
         Kmer_len = end_index - start_index
-        print read.get_reference_positions(full_length=True)
-        print read.get_reference_positions(full_length=True)[start_index:end_index]
-
-
 
         if all(ref_pos is None for ref_pos in read.get_reference_positions(full_length=True)[start_index:end_index]):
             continue
 
         for ref_pos in read.get_reference_positions(full_length=True)[start_index:end_index]:
-            if ref_pos != None:
+            if ref_pos is not None:
                 read.reference_start = ref_pos
                 break
 
         for operation, count in read.cigartuples:
-            print operation, count
-            print current_ind
-            print in_kmer
             if current_ind >= end_index:
                 break
 
@@ -151,19 +130,14 @@ for read in samfile.fetch():
             else:
                 logging.warn('Unexpected cigar op {}'.format(cigar_map[operation]))
 
-
-        print "original cigar" + read.cigarstring
-        print "new cigar " + cigarString_temp
         read.cigarstring = cigarString_temp
         read.query_qualities = pysam.qualitystring_to_array(quality_sring)
-        print "new qual " + quality_sring
-        print "new qual " + str(read.query_qualities)
-        print read.to_string()
+
         kmer_reads.write(read)
 
 
 kmer_reads.close()
 samfile.close()
-
+logging.info("Done!")
 
 
