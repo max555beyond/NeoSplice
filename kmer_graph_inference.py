@@ -1,8 +1,5 @@
 import sys
 import os
-sys.path.insert(0, '/nas02/home/s/h/shengjie/prinslab-splice_graph')
-egg_path='/nas/longleaf/home/shengjie/MSBWT/msbwt-0.3.0-py2.7-linux-x86_64.egg'
-sys.path.append(egg_path)
 import itertools
 import argparse
 import pysam
