@@ -223,6 +223,9 @@ def _find_long_variants(bam, seq, seq_len):
             xs_tag_warning_logged = True
             logging.warn('At least one splice was missing the XS tag. Both directions may be used in the graph.')
 
+        if not read.cigartuples:
+            continue
+
         for op, count in read.cigartuples:
             if op == CigarOp.MATCH:
                 ref_pos += count
