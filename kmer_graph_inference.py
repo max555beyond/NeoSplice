@@ -298,7 +298,7 @@ def find_path_annotated(graph_outer, start_node_outer, target_node, annotated_sp
     return possible_path_list,possible_seq_list
 
 
-def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, direction, strand, genome,
+def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, direction, strand, genome, min_coverage,
                   upstream_limit=None):
     possible_path_list = []
     paths = []
@@ -316,7 +316,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
         continue_indication = False
         edges = [edge for edge in graph.edges(start_node, data=True, keys=True) if
                  edge[1] not in visited_ins_nodes and len(
-                     set.intersection(get_read(chromosome, edge, bam, direction, genome), read_set)) >= 10]
+                     set.intersection(get_read(chromosome, edge, bam, direction, genome), read_set)) >= min_coverage]
         ins_edges = [edge for edge in edges if edge[0] == edge[1]]
 
         if ins_edges:
@@ -343,7 +343,6 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
             # Splice and deletion edges
             if edge[2] == "splice" or edge[2] == "del":
                 continue_indication = True
-                new_read_set = set.intersection(get_read(chromosome, edge, bam, direction, genome), read_set)
                 if direction == -1:
                     paths.append(edge[:2][::-1] + (edge[2], len(new_read_set)))
                 else:
@@ -671,6 +670,7 @@ def main():
     parser.add_argument('tumor_junction_file', type=str, nargs='?', help='The file storing tumor junctions')
     parser.add_argument('normal_junction_file', type=str, nargs='?', help='The file storing normal junctions')
     parser.add_argument('length', type=str, nargs='?', help='The output peptide length')
+    parser.add_argument('transcript_min_coverage', type=str, nargs='?', help='The minimum transcript coverage')
     parser.add_argument('outdir', type=str, nargs='?', help='The output directory')
 
     args = parser.parse_args()
@@ -685,6 +685,7 @@ def main():
     normal_junction_file = args.normal_junction_file
     splice_graph_dir = args.splice_graph_dir
     length = int(args.length)
+    min_coverage= int(args.transcript_min_coverage)
 
     reference_directory = os.getcwd()
     netMHCpan_path = os.path.abspath(reference_directory+"/netMHCpan-4.0/netMHCpan")
@@ -772,7 +773,7 @@ def main():
     for kmer_num, unique_path in enumerate(unique_path_edges):
         logging.info("processing kmer {}".format(kmer_num))
 
-        if len(unique_path_edges[unique_path]) < 10:
+        if len(unique_path_edges[unique_path]) < min_coverage:
             continue
 
         novel_splices = unique_path_splices[unique_path]
@@ -804,8 +805,9 @@ def main():
                     upstream_paths, upstream_seqs, upstream_read_set = find_path_dfs(chromosome, bam, gene.reverse(),
                                                                                         unique_path[0][0],
                                                                                         read_set, -1, '+', genome,
-                                                                  annotated_transcripts[transcript].start_codon[
-                                                                     -1].location.end.position)
+                                                                                     min_coverage,
+                                                                        annotated_transcripts[transcript].start_codon[
+                                                                        -1].location.end.position)
 
                     for upstream_path, upstream_seq in zip(upstream_paths, upstream_seqs):
                         if upstream_path[0][0] == annotated_transcripts[transcript].start_codon[
@@ -839,7 +841,8 @@ def main():
                                                                      -1].location.end.position:
                         full_downstream_paths, full_downstream_seqs, _ = find_path_dfs(chromosome, bam, gene,
                                                                                        unique_path[-1][1],
-                                                                                       read_set, +1, '+', genome)
+                                                                                       read_set, +1, '+', genome,
+                                                                                       min_coverage)
 
                         if len(full_upstream_paths) and len(full_downstream_paths):
                             for combination in itertools.product(range(len(full_upstream_paths)),
@@ -959,7 +962,7 @@ def main():
                     0].location.start.position > novel_splice[1]:
                     upstream_paths, upstream_seqs, upstream_read_set = find_path_dfs(chromosome, bam, gene,
                                                                                      unique_path[-1][1], read_set,
-                                                                                     +1, '-', genome,
+                                                                                     +1, '-', genome, min_coverage,
                                                                                      annotated_transcripts[
                                                                                          transcript].start_codon[
                                                                                          0].location.start.position)
@@ -999,8 +1002,8 @@ def main():
                                                                                    transcript].start_codon[
                                                                                    0].location.start.position:
                         full_downstream_paths, full_downstream_seqs, _ = find_path_dfs(chromosome, bam, gene.reverse(),
-                                                                                       unique_path[0][0]
-                                                                                        , read_set, -1, '-', genome)
+                                                                                       unique_path[0][0], read_set,
+                                                                                       -1, '-', genome, min_coverage)
                         if len(full_upstream_paths) and len(full_downstream_paths):
                             for combination in itertools.product(range(len(full_upstream_paths)),
                                                                  range(len(full_downstream_paths))):
