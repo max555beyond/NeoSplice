@@ -88,7 +88,7 @@ pattern = re.compile(trie.pattern())
 
 for read in samfile.fetch():
     if not read.is_unmapped and not read.is_secondary and read.is_proper_pair and read.is_paired and\
-            not read.is_duplicate and not read.is_supplementary:
+            not read.is_duplicate and not read.is_supplementary and 'N' in read.cigarstring:
 
         found = pattern.search(read.query_sequence)
         if not found:
