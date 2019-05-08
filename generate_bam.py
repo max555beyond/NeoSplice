@@ -1,5 +1,5 @@
 import pysam
-import re
+import regex as re
 import argparse
 import logging
 
