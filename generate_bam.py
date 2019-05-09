@@ -86,7 +86,7 @@ def main():
             trie.add(line_split[0])
 
     pattern = re.compile(trie.pattern())
-    print trie.pattern()
+
     for read in samfile.fetch():
         if not read.is_unmapped and not read.is_secondary and read.is_proper_pair and read.is_paired and\
                 not read.is_duplicate and not read.is_supplementary and 'N' in read.cigarstring:
@@ -95,43 +95,33 @@ def main():
 
             if not matches:
                 continue
+
             if len(matches) >= 2 :
-                print 'happend'
-            print matches
-            print '\t'.join(read.to_string().split('\t'))
+                logging.info("more than one kmer found in the read")
 
             for found in matches:
 
                 start_index = found.start()
                 end_index = found.end()
-                print "start " + str(start_index)
-                print "end " + str(end_index)
+
                 if all(ref_pos is None for ref_pos in
                        read.get_reference_positions(full_length=True)[start_index:end_index]):
                     continue
 
                 quality_string = read.to_string().split('\t')[10][start_index:end_index]
-                print "qual " + quality_string
 
                 kmer_read = pysam.AlignedSegment()
-                print dir(kmer_read)
                 kmer_read.query_name = read.query_name
                 kmer_read.query_sequence = read.query_sequence[start_index:end_index]
                 kmer_read.flag = read.flag
                 kmer_read.reference_id = read.reference_id
-                print kmer_read.query_name
-                print kmer_read.query_sequence
-                print kmer_read.flag
-                print read.reference_id
-                print kmer_read.reference_id
+
                 for ref_pos in read.get_reference_positions(full_length=True)[start_index:end_index]:
                     if ref_pos is not None:
                         kmer_read.reference_start = ref_pos
                         break
 
-                print kmer_read.reference_start
                 kmer_read.mapping_quality = read.mapping_quality
-                print kmer_read.mapping_quality
 
                 current_ind = 0
                 in_kmer = False
@@ -156,12 +146,8 @@ def main():
                         logging.warn('Unexpected cigar op {}'.format(cigar_map[operation]))
 
                 kmer_read.cigarstring = cigarString_temp
-                print kmer_read.cigarstring
                 kmer_read.query_qualities = pysam.qualitystring_to_array(quality_string)
-                print kmer_read.query_qualities
-
                 kmer_reads.write(kmer_read)
-                print kmer_read
 
     kmer_reads.close()
     samfile.close()
