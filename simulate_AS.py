@@ -166,7 +166,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
             if intron[0] <= novel_splice[0] <= intron[1] - 1:
                 left_index = i
                 left_type = "intron"
-            if intron[0] <= novel_splice[1] - 1 <= intron[1] - 1:
+            if intron[0] < novel_splice[1] - 1 <= intron[1] - 1:
                 right_index = i
                 right_type = "intron"
 
