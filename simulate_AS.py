@@ -116,13 +116,13 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
          gene_data.score, strand_symbol[gene_data.strand],
          gene_data.frame,
-         """gene_id "{}";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format('')]) + '\n')
+         """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format('')]) + '\n')
 
     normal_outf.write('\t'.join(
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
          gene_data.score, strand_symbol[gene_data.strand],
          gene_data.frame,
-         """gene_id "{}";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format('')]) + '\n')
+         """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format('')]) + '\n')
     # in one-based coordinate
     novel_splice_idx = np.random.choice(len(possible_novel_splices))
     novel_splice = possible_novel_splices[novel_splice_idx]
@@ -142,14 +142,14 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
             [transcript.chromosome, "test", "transcript", str(transcript.startposition + 1),
              str(transcript.endposition),
              transcript.score, strand_symbol[transcript.strand], str(transcript.frame),
-             """gene_id "{}";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format(
+             """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format(
                  transcript.ID)]) + '\n')
 
         normal_outf.write('\t'.join(
             [transcript.chromosome, "test", "transcript", str(transcript.startposition + 1),
              str(transcript.endposition),
              transcript.score, strand_symbol[transcript.strand], str(transcript.frame),
-             """gene_id "{}";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format(
+             """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format(
                  transcript.ID)]) + '\n')
 
         for i, exon in enumerate(transcript.cds_list):
