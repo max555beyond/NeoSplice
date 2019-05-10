@@ -6,6 +6,7 @@ import itertools
 from BCBio import GFF
 import logging
 
+
 class Gene(object):
     def __init__(self, chromosome, startposition, endposition, strand, ID):
         self.chromosome = chromosome
@@ -51,12 +52,14 @@ def _find_annotated_transcripts(gff_in_file, chromosome):
         for gene in chromosome_inf.features:
             if "protein_coding" in gene.qualifiers["gene_type"]:
                 gene_name = gene.qualifiers["gene_name"][0]
+                print "gene is " + str(gene)
                 gene_data = Gene(chromosome, gene.location.start.position, gene.location.end.position, gene.strand,
                                  gene_name)
                 transcripts_dic[gene_name] = gene_data
                 qualified = False
                 for transcript in gene.sub_features:
                     if "protein_coding" in transcript.qualifiers["transcript_type"]:
+                        print "transcript is " + str(transcript.qualifiers["transcript_id"][0])
                         start_codon = []
                         stop_codon = []
                         cds_list = []
@@ -107,12 +110,15 @@ def _find_annotated_transcripts(gff_in_file, chromosome):
 def write_gtf(gene_data, tumor_outf, normal_outf):
     transcript_left_splices = gene_data.left_splices
     transcript_right_splices = gene_data.right_splices
-
+    print "start"
     print transcript_left_splices
     print transcript_right_splices
+    print gene_data.all_splices
     possible_novel_splices = [(a, b) for a, b in
                               itertools.product(list(transcript_left_splices), list(transcript_right_splices)) if
                               a < b and (a, b) not in gene_data.all_splices]
+    if not possible_novel_splices:
+        return
     print possible_novel_splices
 
     tumor_outf.write('\t'.join(
@@ -141,6 +147,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
         left_type = None
         right_type = None
 
+        print "novel splice " + str(novel_splice)
         print "transcipt name " + transcript.ID
         print "transcipt splices " + str(transcript.splice_list)
         print "exon list " + str(transcript.cds_list)
@@ -184,7 +191,8 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
         print "left type " + str(left_type)
         print "right index " + str(right_index)
         print "right type " + str(right_type)
-        #print   novel_splice
+        print  novel_splice
+        print novel_splice[1]
         if right_index is None or left_index is None:
             continue
 
@@ -271,7 +279,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                          transcript.ID)]) + '\n')
 
             elif i == right_index:
-                if right_type == "intron": #and novel_splice[1] != transcript.splice_list[i][1]:
+                if right_type == "intron":
                     ref_list.append('\t'.join(
                         [transcript.chromosome, "test", "exon",
                          str(transcript.cds_list[i].location.start.position + 1),
@@ -279,11 +287,11 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                          strand_symbol[transcript.cds_list[i].strand], '.',
                          """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                              transcript.ID)]) + '\n')
-                    i+=1
+                    i += 1
 
                 temp_list.append('\t'.join(
                         [transcript.chromosome, "test", "exon",
-                         str(novel_splice[1]+1),
+                         str(novel_splice[1] + 1),
                          str(transcript.cds_list[i].location.end.position), '.',
                          strand_symbol[transcript.cds_list[i].strand], '.',
                          """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
@@ -297,7 +305,6 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                              transcript.ID)]) + '\n')
 
             i += 1
-
 
         if transcript.strand == -1:
             for rec in temp_list[::-1]:
