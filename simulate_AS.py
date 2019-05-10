@@ -52,14 +52,12 @@ def _find_annotated_transcripts(gff_in_file, chromosome):
         for gene in chromosome_inf.features:
             if "protein_coding" in gene.qualifiers["gene_type"]:
                 gene_name = gene.qualifiers["gene_name"][0]
-                print "gene is " + str(gene)
                 gene_data = Gene(chromosome, gene.location.start.position, gene.location.end.position, gene.strand,
                                  gene_name)
                 transcripts_dic[gene_name] = gene_data
                 qualified = False
                 for transcript in gene.sub_features:
                     if "protein_coding" in transcript.qualifiers["transcript_type"]:
-                        print "transcript is " + str(transcript.qualifiers["transcript_id"][0])
                         start_codon = []
                         stop_codon = []
                         cds_list = []
@@ -95,11 +93,8 @@ def _find_annotated_transcripts(gff_in_file, chromosome):
 
                             qualified = True
                             gene_data.all_splices |= set(splice_list)
-                            print gene_data.all_splices
                             gene_data.left_splices |= set([splice[0] for splice in splice_list])
-                            print gene_data.left_splices
                             gene_data.right_splices |= set([splice[1] for splice in splice_list])
-                            print gene_data.right_splices
 
                 if not qualified:
                     transcripts_dic.pop(gene_name)
@@ -110,16 +105,12 @@ def _find_annotated_transcripts(gff_in_file, chromosome):
 def write_gtf(gene_data, tumor_outf, normal_outf):
     transcript_left_splices = gene_data.left_splices
     transcript_right_splices = gene_data.right_splices
-    print "start"
-    print transcript_left_splices
-    print transcript_right_splices
-    print gene_data.all_splices
     possible_novel_splices = [(a, b) for a, b in
                               itertools.product(list(transcript_left_splices), list(transcript_right_splices)) if
                               a < b and (a, b) not in gene_data.all_splices]
+
     if not possible_novel_splices:
         return
-    print possible_novel_splices
 
     tumor_outf.write('\t'.join(
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
@@ -146,14 +137,6 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
         right_index = None
         left_type = None
         right_type = None
-
-        print "novel splice " + str(novel_splice)
-        print "transcipt name " + transcript.ID
-        print "transcipt splices " + str(transcript.splice_list)
-        print "exon list " + str(transcript.cds_list)
-        print "left splices " + str(gene_data.left_splices)
-        print "right splices " + str(gene_data.right_splices)
-
 
         tumor_outf.write('\t'.join(
             [transcript.chromosome, "test", "transcript", str(transcript.startposition + 1),
@@ -187,17 +170,11 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                 right_index = i
                 right_type = "intron"
 
-        print "left index " + str(left_index)
-        print "left type " + str(left_type)
-        print "right index " + str(right_index)
-        print "right type " + str(right_type)
-        print  novel_splice
-        print novel_splice[1]
         if right_index is None or left_index is None:
             continue
 
         skipped_index = range(left_index + 1, right_index)
-        #print "skipped_index " + str(skipped_index)
+
         i = 0
         temp_list = []
         ref_list = []
