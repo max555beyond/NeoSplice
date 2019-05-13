@@ -116,13 +116,13 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
          gene_data.score, strand_symbol[gene_data.strand],
          gene_data.frame,
-         """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format('')]) + '\n')
+         """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(gene_data.ID)]) + '\n')
 
     normal_outf.write('\t'.join(
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
          gene_data.score, strand_symbol[gene_data.strand],
          gene_data.frame,
-         """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format('')]) + '\n')
+         """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(gene_data.ID)]) + '\n')
     # in one-based coordinate
     novel_splice_idx = np.random.choice(len(possible_novel_splices))
     novel_splice = possible_novel_splices[novel_splice_idx]
@@ -142,14 +142,14 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
             [transcript.chromosome, "test", "transcript", str(transcript.startposition + 1),
              str(transcript.endposition),
              transcript.score, strand_symbol[transcript.strand], str(transcript.frame),
-             """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format(
+             """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                  transcript.ID)]) + '\n')
 
         normal_outf.write('\t'.join(
             [transcript.chromosome, "test", "transcript", str(transcript.startposition + 1),
              str(transcript.endposition),
              transcript.score, strand_symbol[transcript.strand], str(transcript.frame),
-             """gene_id "{}\";""".format(gene_data.ID) + ";" + """ transcript_id "{}";""".format(
+             """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                  transcript.ID)]) + '\n')
 
         for i, exon in enumerate(transcript.cds_list):
@@ -187,7 +187,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(transcript.cds_list[i].location.end.position), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
 
             elif i != left_index and i != right_index:
@@ -196,14 +196,14 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(transcript.cds_list[i].location.end.position), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
                 ref_list.append('\t'.join(
                     [transcript.chromosome, "test", "exon",
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(transcript.cds_list[i].location.end.position), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
             # left splice right splice in same intron/exon
             elif i == left_index == right_index:
@@ -212,31 +212,32 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(novel_splice[0]), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
                 ref_list.append('\t'.join(
                     [transcript.chromosome, "test", "exon",
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(transcript.cds_list[i].location.end.position), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
-
-                i += 1
+                #connect to next exon
+                if right_type == "intron":
+                    i += 1
+                    ref_list.append('\t'.join(
+                        [transcript.chromosome, "test", "exon",
+                         str(transcript.cds_list[i].location.start.position + 1),
+                         str(transcript.cds_list[i].location.end.position), '.',
+                         strand_symbol[transcript.cds_list[i].strand], '.',
+                         """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                             transcript.ID)]) + '\n')
 
                 temp_list.append('\t'.join(
                     [transcript.chromosome, "test", "exon",
                      str(novel_splice[1] + 1),
                      str(transcript.cds_list[i].location.end.position), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
-                         transcript.ID)]) + '\n')
-                ref_list.append('\t'.join(
-                    [transcript.chromosome, "test", "exon",
-                     str(transcript.cds_list[i].location.start.position + 1),
-                     str(transcript.cds_list[i].location.end.position), '.',
-                     strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
 
             elif i == left_index:
@@ -245,14 +246,14 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(novel_splice[0]), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
                 ref_list.append('\t'.join(
                     [transcript.chromosome, "test", "exon",
                      str(transcript.cds_list[i].location.start.position + 1),
                      str(transcript.cds_list[i].location.end.position), '.',
                      strand_symbol[transcript.cds_list[i].strand], '.',
-                     """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                     """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                          transcript.ID)]) + '\n')
 
             elif i == right_index:
@@ -262,7 +263,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                          str(transcript.cds_list[i].location.start.position + 1),
                          str(transcript.cds_list[i].location.end.position), '.',
                          strand_symbol[transcript.cds_list[i].strand], '.',
-                         """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                         """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                              transcript.ID)]) + '\n')
                     i += 1
 
@@ -271,14 +272,14 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
                          str(novel_splice[1] + 1),
                          str(transcript.cds_list[i].location.end.position), '.',
                          strand_symbol[transcript.cds_list[i].strand], '.',
-                         """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                         """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                              transcript.ID)]) + '\n')
                 ref_list.append('\t'.join(
                         [transcript.chromosome, "test", "exon",
                          str(transcript.cds_list[i].location.start.position + 1),
                          str(transcript.cds_list[i].location.end.position), '.',
                          strand_symbol[transcript.cds_list[i].strand], '.',
-                         """gene_id "{}\";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
+                         """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(
                              transcript.ID)]) + '\n')
 
             i += 1
