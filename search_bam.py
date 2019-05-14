@@ -1,71 +1,12 @@
 import pysam
-import regex as re
+import ahocorasick
 import argparse
 import logging
-
-
-class Trie():
-    """Regex::Trie in Python. Creates a Trie out of a list of words. The trie can be exported to a Regex pattern.
-    The corresponding Regex should match much faster than a simple Regex union."""
-
-    def __init__(self):
-        self.data = {}
-
-    def add(self, word):
-        ref = self.data
-        for char in word:
-            ref[char] = char in ref and ref[char] or {}
-            ref = ref[char]
-        ref[''] = 1
-
-    def dump(self):
-        return self.data
-
-    def quote(self, char):
-        return re.escape(char)
-
-    def _pattern(self, pData):
-        data = pData
-        if "" in data and len(data.keys()) == 1:
-            return None
-
-        alt = []
-        cc = []
-        q = 0
-        for char in sorted(data.keys()):
-            if isinstance(data[char], dict):
-                try:
-                    recurse = self._pattern(data[char])
-                    alt.append(self.quote(char) + recurse)
-                except:
-                    cc.append(self.quote(char))
-            else:
-                q = 1
-        cconly = not len(alt) > 0
-
-        if len(cc) > 0:
-            if len(cc) == 1:
-                alt.append(cc[0])
-            else:
-                alt.append('[' + ''.join(cc) + ']')
-
-        if len(alt) == 1:
-            result = alt[0]
-        else:
-            result = "(?:" + "|".join(alt) + ")"
-
-        if q:
-            if cconly:
-                result += "?"
-            else:
-                result = "(?:%s)?" % result
-        return result
-
-    def pattern(self):
-        return self._pattern(self.dump())
+import timeit
 
 
 def main():
+    start = timeit.default_timer()
     logging.basicConfig(level=logging.DEBUG, format="%(asctime)-15s [%(processName)s.%(levelname)s] %(message)s")
     parser = argparse.ArgumentParser(description="Utility for retrieving tumor specific kmers in RNA-seq reads.")
     parser.add_argument("Kmer_file", type=str, nargs='?', help="provide Kmer file here")
@@ -78,31 +19,23 @@ def main():
     samfile = pysam.AlignmentFile(args.input_bam_file, "rb")
     kmer_reads = pysam.AlignmentFile(args.out_bam_file, "wb", template=samfile)
 
-    trie = Trie()
+    trie = ahocorasick.Automaton()
 
     with open(args.Kmer_file) as f:
         for line in f:
             line_split = line.strip().split('\t')
-            trie.add(line_split[0])
+            trie.add_word(line_split[0], line_split[0])
 
-    pattern = re.compile(trie.pattern())
+    trie.make_automaton()
+    logging.info("finished making automaton")
 
     for read in samfile.fetch():
         if not read.is_unmapped and not read.is_secondary and read.is_proper_pair and read.is_paired and\
                 not read.is_duplicate and not read.is_supplementary and 'N' in read.cigarstring:
 
-            matches = list(pattern.finditer(read.query_sequence, overlapped=True))
-
-            if not matches:
-                continue
-
-            if len(matches) >= 2 :
-                logging.info("more than one kmer found in the read")
-
-            for found in matches:
-
-                start_index = found.start()
-                end_index = found.end()
+            for end, kmer in trie.iter(read.query_sequence):
+                start_index = end - len(kmer) + 1
+                end_index = end + 1
 
                 if all(ref_pos is None for ref_pos in
                        read.get_reference_positions(full_length=True)[start_index:end_index]):
@@ -152,6 +85,8 @@ def main():
     kmer_reads.close()
     samfile.close()
     logging.info("Done!")
+    stop = timeit.default_timer()
+    logging.info("total search time: {}".format(stop - start))
 
 
 if __name__ == '__main__':
