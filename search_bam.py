@@ -78,6 +78,9 @@ def main():
                     else:
                         logging.warn('Unexpected cigar op {}'.format(cigar_map[operation]))
 
+                if "S" in cigarString_temp:
+                    continue
+
                 kmer_read.cigarstring = cigarString_temp
                 kmer_read.query_qualities = pysam.qualitystring_to_array(quality_string)
                 kmer_reads.write(kmer_read)
