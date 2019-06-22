@@ -695,7 +695,7 @@ def main():
     netMHCpan_path = os.path.abspath(reference_directory+"/netMHCpan-4.0/netMHCpan")
     netMHCIIpan_path = os.path.abspath(reference_directory+"/netMHCIIpan-3.2/netMHCIIpan")
     neoantigen_path = os.path.join(args.outdir+"neoantigen_result/", sample + '/')
-    genome = Fasta("/pine/scr/s/h/shengjie/hg19.fa")
+    genome = Fasta("/nas/longleaf/home/shengjie/hg19.fa")
 
     if not os.path.isdir(neoantigen_path) and not os.path.exists(neoantigen_path):
         os.makedirs(neoantigen_path, 0777)
@@ -986,7 +986,7 @@ def main():
                                                                                          0].location.start.position)
 
                     for upstream_path, upstream_seq in zip(upstream_paths, upstream_seqs):
-                        if upstream_path[-1][-1] == annotated_transcripts[transcript].start_codon[
+                        if upstream_path[-1][1] == annotated_transcripts[transcript].start_codon[
                                 0].location.start.position:
                             full_upstream_paths.append(upstream_path)
                             full_upstream_seqs.append(upstream_seq)
@@ -1170,6 +1170,8 @@ def main():
 
     output_file.close()
     fasta_file.close()
+    bam.close()
+    kmer_dat.close()
     run_netMHCpan(sample, chromosome, length, HLA_string, HLA_II_string, neoantigen_path, netMHCpan_path,
                   netMHCIIpan_path)
     combine_table(sample, neoantigen_path, length, chromosome)
