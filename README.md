@@ -1,1 +1,1 @@
-The tool for prediction splice variant neoantigens
+The tool for prediction of splice variant neoantigens
