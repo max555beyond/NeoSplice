@@ -200,7 +200,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf, splice_type=None):
         print donor_possible_count
         print acceptor_possible_count
 
-        left_comb = itertools.product(donor_valid_count.most_common(3)[0][1])
+        left_comb = itertools.product(donor_valid_count.most_common(3)[0][1], acceptor_possible_count.most_common(3)[0][1])
 
         if donor_valid_count.most_common(1)[0][1] >= acceptor_valid_count.most_common(1)[0][1]:
             novel_splice_donor = donor_valid_count.most_common(1)[0][0]
