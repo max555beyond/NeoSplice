@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/splice_variant_neo.iml" filepath="$PROJECT_DIR$/.idea/splice_variant_neo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/NeoSplice.iml" filepath="$PROJECT_DIR$/.idea/NeoSplice.iml" />
     </modules>
   </component>
 </project>
