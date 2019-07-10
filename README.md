@@ -32,4 +32,5 @@ using MSBWT-IS
 * Search for tumor specific K-mer with Kmer_search_bwt.py
 * Obtain output bam file with K-mer containing reads using search_bam.py
 
-Step3: Run augmented_splice_graph.py to predict splice variant neoantigens
+Step3: Run augmented_splice_graph.py using splice graphs generated in step 1 and 
+aligned K-mer bam file generated in step 2 to predict splice variant neoantigens
