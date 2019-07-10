@@ -102,15 +102,158 @@ def _find_annotated_transcripts(gff_in_file, chromosome):
     return transcripts_dic
 
 
-def write_gtf(gene_data, tumor_outf, normal_outf):
+def get_transcript_occurrence(transcripts, novel_splice):
+    count = 0
+    for transcript in transcripts:
+        print transcript.ID
+        print novel_splice
+        print [splice[0] for splice in transcript.splice_list]
+        print [splice[1] for splice in transcript.splice_list]
+        if novel_splice[0] in [splice[0] for splice in transcript.splice_list] and novel_splice[1] in [splice[1] for
+                                                                                    splice in transcript.splice_list]:
+            print "found"
+            count += 1
+    print "done"
+    return count
+
+
+def get_possible_transcript_occurrence_donor_acceptor(transcripts, splice_pos, is_doner, pos_type, annotated=False):
+    count = 0
+    for transcript in transcripts:
+        annotated_ends = [splice[0] for splice in transcript.splice_list] if is_doner else [splice[1] for splice in
+                                                                                            transcript.splice_list]
+        print transcript.ID
+        print "annotated " + str(annotated_ends)
+        print is_doner
+        print pos_type
+        print splice_pos
+        if pos_type == "intronic":
+            if is_from_intron(transcript, splice_pos, is_doner) or annotated and splice_pos in annotated_ends:
+                print "found"
+                count += 1
+        elif pos_type == "exonic":
+            if is_from_exon(transcript, splice_pos, is_doner) or annotated and splice_pos in annotated_ends:
+                print "found"
+                count += 1
+    return count
+
+
+def is_from_intron(transcript, splice_pos, is_doner):
+    print "splice pos " + str(splice_pos)
+    print is_doner
+    for intron in transcript.splice_list:
+        print intron
+        if is_doner and intron[0] < splice_pos <= intron[1] - 1:
+            return True
+        elif not is_doner and intron[0] <= splice_pos - 1 < intron[1] - 1:
+            return True
+    else:
+        return False
+
+
+def is_from_exon(transcript, splice_pos, is_doner):
+    print "splice pos " + str(splice_pos)
+    print is_doner
+    for cds in transcript.cds_list:
+        print (cds.location.start.position, cds.location.end.position)
+        if is_doner and cds.location.start.position < splice_pos <= cds.location.end.position - 1:
+            return True
+        elif not is_doner and cds.location.start.position <= splice_pos - 1 < cds.location.end.position - 1:
+            return True
+    else:
+        return False
+
+
+def write_gtf(gene_data, tumor_outf, normal_outf, splice_type=None):
     transcript_left_splices = gene_data.left_splices
     transcript_right_splices = gene_data.right_splices
-    possible_novel_splices = [(a, b) for a, b in
+    if splice_type == "exon_skipping":
+        possible_novel_splices = sorted([(a, b, get_transcript_occurrence(gene_data.transcripts, (a, b))) for a, b in
+                                  itertools.product(list(transcript_left_splices), list(transcript_right_splices)) if
+                                  a < b and (a, b) not in gene_data.all_splices], key=lambda x: x[2])
+        print possible_novel_splices
+        if not possible_novel_splices:
+            return
+        novel_splice = possible_novel_splices[-1]
+        print "novel splice " + str(novel_splice)
+    elif splice_type == "exon_loss":
+        donor_valid_count = collections.Counter()
+        acceptor_valid_count = collections.Counter()
+        donor_possible_count = collections.Counter()
+        acceptor_possible_count = collections.Counter()
+        for splice in gene_data.all_splices:
+            print splice
+            donor_valid_count[splice[0]] = get_possible_transcript_occurrence_donor_acceptor(gene_data.transcripts,
+                                                                                             splice[0], True, "exonic")
+            acceptor_valid_count[splice[1]] = get_possible_transcript_occurrence_donor_acceptor(gene_data.transcripts,
+                                                                                        splice[1], False, "exonic")
+            donor_possible_count[splice[0]] = get_possible_transcript_occurrence_donor_acceptor(gene_data.transcripts,
+                                                                                        splice[0], True, "exonic", True)
+            acceptor_possible_count[splice[1]] = get_possible_transcript_occurrence_donor_acceptor(
+                                                                gene_data.transcripts, splice[1], False, "exonic", True)
+
+        if donor_valid_count.most_common(1)[0][1] == 0 or acceptor_valid_count.most_common(1)[0][1] == 0:
+            return
+
+        print donor_valid_count
+        print acceptor_valid_count
+        print donor_possible_count
+        print acceptor_possible_count
+
+        left_comb = itertools.product(donor_valid_count.most_common(3)[0][1])
+
+        if donor_valid_count.most_common(1)[0][1] >= acceptor_valid_count.most_common(1)[0][1]:
+            novel_splice_donor = donor_valid_count.most_common(1)[0][0]
+            novel_splice_acceptor = acceptor_possible_count.most_common(1)[0][0]
+        else:
+            novel_splice_donor = donor_possible_count.most_common(1)[0][0]
+            novel_splice_acceptor = acceptor_valid_count.most_common(1)[0][0]
+
+        novel_splice = (novel_splice_donor, novel_splice_acceptor)
+        print "novel splice " + str(novel_splice)
+    elif splice_type == "intron_gain":
+        donor_valid_count = collections.Counter()
+        acceptor_valid_count = collections.Counter()
+        donor_possible_count = collections.Counter()
+        acceptor_possible_count = collections.Counter()
+        for splice in gene_data.all_splices:
+            print splice
+            donor_valid_count[splice[0]] = get_possible_transcript_occurrence_donor_acceptor(gene_data.transcripts,
+                                                                                            splice[0], True, "intronic")
+            acceptor_valid_count[splice[1]] = get_possible_transcript_occurrence_donor_acceptor(gene_data.transcripts,
+                                                                                        splice[1], False, "intronic")
+            donor_possible_count[splice[0]] = get_possible_transcript_occurrence_donor_acceptor(gene_data.transcripts,
+                                                                                    splice[0], True, "intronic", True)
+            acceptor_possible_count[splice[1]] = get_possible_transcript_occurrence_donor_acceptor(
+                                                            gene_data.transcripts, splice[1], False, "intronic", True)
+
+        print donor_valid_count
+        print acceptor_valid_count
+        print donor_possible_count
+        print acceptor_possible_count
+        if donor_valid_count.most_common(1)[0][1] == 0 or acceptor_valid_count.most_common(1)[0][1] == 0:
+            return
+
+        if donor_valid_count.most_common(1)[0][1] >= acceptor_valid_count.most_common(1)[0][1]:
+            novel_splice_donor = donor_valid_count.most_common(1)[0][0]
+            novel_splice_acceptor = acceptor_possible_count.most_common(1)[0][0]
+        else:
+            novel_splice_donor = donor_possible_count.most_common(1)[0][0]
+            novel_splice_acceptor = acceptor_valid_count.most_common(1)[0][0]
+
+        novel_splice = (novel_splice_donor, novel_splice_acceptor)
+        print "novel splice " + str(novel_splice)
+    else:
+        possible_novel_splices = [(a, b) for a, b in
                               itertools.product(list(transcript_left_splices), list(transcript_right_splices)) if
                               a < b and (a, b) not in gene_data.all_splices]
 
-    if not possible_novel_splices:
-        return
+        if not possible_novel_splices:
+            return
+
+        novel_splice_idx = np.random.choice(len(possible_novel_splices))
+        novel_splice = possible_novel_splices[novel_splice_idx]
+        print "novel splice " + str(novel_splice)
 
     tumor_outf.write('\t'.join(
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
@@ -123,9 +266,7 @@ def write_gtf(gene_data, tumor_outf, normal_outf):
          gene_data.score, strand_symbol[gene_data.strand],
          gene_data.frame,
          """gene_id "{}";""".format(gene_data.ID) + """ transcript_id "{}";""".format(gene_data.ID)]) + '\n')
-    # in one-based coordinate
-    novel_splice_idx = np.random.choice(len(possible_novel_splices))
-    novel_splice = possible_novel_splices[novel_splice_idx]
+
     logging.info("selected novel splice {}".format(novel_splice))
 
     for transcript in gene_data.transcripts:
@@ -303,6 +444,7 @@ def main():
     parser.add_argument('gff_file', type=str, nargs='?', help='provide gff3 file path here')
     parser.add_argument('outdir', type=str, nargs='?', help='provide outdir here')
     parser.add_argument("num_alterations", type=int, nargs='?', help='provide number of altered genes per chromosome here')
+    parser.add_argument("--splice_type", type=str, nargs='?', help='provide splice type here')
     args = parser.parse_args()
 
     gff_in_file = args.gff_file
@@ -313,9 +455,13 @@ def main():
     tumor_outf = open(tumor_GTF_output, 'w')
     normal_outf = open(normal_GTF_output, 'w')
 
+    splice_type = "random"
+    if args.splice_type:
+        splice_type = args.splice_type
+
     annotatedTransctipts = {}
 
-    for i in range(1,23):
+    for i in range(1,4):
         chromosome = "chr" + str(i)
         logging.info("processing {}".format(chromosome))
         annotatedTransctipts[chromosome] = _find_annotated_transcripts(gff_in_file, chromosome)
@@ -325,7 +471,7 @@ def main():
         logging.info("selected genes: {}".format(','.join(genes_to_alter)))
 
         for gene in genes_to_alter:
-            write_gtf(annotatedTransctipts[chromosome][gene], tumor_outf, normal_outf)
+            write_gtf(annotatedTransctipts[chromosome][gene], tumor_outf, normal_outf, splice_type)
 
     tumor_outf.close()
     normal_outf.close()
