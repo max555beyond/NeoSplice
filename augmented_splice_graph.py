@@ -14,7 +14,7 @@ from networkx.readwrite import json_graph
 import numpy as np
 import os
 import pickle
-import pyfasta
+from pyfaidx import Fasta
 import pysam
 from scipy.stats import binom
 import sys
@@ -301,7 +301,7 @@ def _pileup(bam, reference, seq, seq_len, splice_graph, snp_cutoff, min_coverage
 
     for column in bam.pileup(seq, 0, seq_len, truncate=True):
         # Analyze reads and call snps
-        ref_base = reference[column.reference_pos].upper()
+        ref_base = reference[column.reference_pos].seq.upper()
         coverage, bases, snp, snp_weight = _analyze_column(column, snp_cutoff, p_error, ref_base)
         snps_to_add = snp is not None and snp_weight >= min_variants
         effective_coverage = coverage - snp_weight
@@ -317,7 +317,7 @@ def _pileup(bam, reference, seq, seq_len, splice_graph, snp_cutoff, min_coverage
                 average_coverage = np.mean(running_coverage)
 
                 # Get the reference sequence
-                exon_seq = reference[start:last_pos+1].upper()
+                exon_seq = reference[start:last_pos+1].seq.upper()
                 
                 # Edge extends from first transcribed base to next base not in the exon
                 splice_graph.add_edge(start, last_pos+1, EdgeType.EXON, {'weight': average_coverage, 'seq': exon_seq, 'coverage': running_coverage})
@@ -347,7 +347,7 @@ def _pileup(bam, reference, seq, seq_len, splice_graph, snp_cutoff, min_coverage
         average_coverage = np.mean(running_coverage)
 
         # Get the reference sequence
-        exon_seq = reference[start:last_pos+1].upper()
+        exon_seq = reference[start:last_pos+1].seq.upper()
 
         # Edge extends from first transcribed base to next base not in the exon
         splice_graph.add_edge(start, last_pos+1, EdgeType.EXON, {'weight': average_coverage, 'seq': exon_seq, 'coverage': running_coverage})
@@ -388,7 +388,7 @@ def _build_splice_graph(gff_name, bam_name, bam_seq, genome_name, genome_seq, sn
             sys.exit(1)
 
         # Get the reference genome
-        genome = pyfasta.Fasta(genome_name)
+        genome = Fasta(genome_name)
         if genome_seq not in genome:
             logging.error('Unable to find seq {0} in {1}'.format(genome_seq, genome_name))
             sys.exit(1)
@@ -475,6 +475,7 @@ def main():
 
     args = parser.parse_args()
     args.command(args)
+
 
 if __name__ == '__main__':
     main()
