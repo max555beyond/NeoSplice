@@ -9,7 +9,7 @@ NeoSplice is a bioinformatics algorithm for prediction of splice variant neoanti
 1. multi-string BWT (MSBWT) https://github.com/holtjma/msbwt
 2. MSBWT-IS https://github.com/holtjma/msbwt-is
 
-######python packages:
+#####python packages:
 
 * networkx 1.11
 * pyahocorasick 1.4.0
