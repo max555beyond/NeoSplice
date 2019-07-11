@@ -2,7 +2,8 @@ NeoSplice
 ===
 **Introduction**
 ---
-NeoSplice is a bioinformatics algorithm for prediction of splice variant neoantigens.
+NeoSplice is a bioinformatics algorithm for prediction of splice variant neoantigens using tumor 
+and matched normal RNA-seq data.
 
 **System Requirements**
 ---
