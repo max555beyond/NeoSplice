@@ -668,6 +668,7 @@ def main():
     parser.add_argument('chromosome', type=str, nargs='?', help='The chromosome')
     parser.add_argument('bam_file', type=str, nargs='?', help='provide RNA-seq bam file path here')
     parser.add_argument('gff_file', type=str, nargs='?', help='The GFF file path')
+    parser.add_argument('genome_fasta', type=str, nargs='?', help='The genome FASTA file path')
     parser.add_argument('kmer_bam', type=str, nargs='?', help='The bam file storing kmer info')
     parser.add_argument('splice_graph_dir', type=str, nargs='?', help='The directory storing splice graphs')
     parser.add_argument('tumor_junction_file', type=str, nargs='?', help='The file storing tumor junctions')
@@ -695,7 +696,7 @@ def main():
     netMHCpan_path = os.path.abspath(reference_directory+"/netMHCpan-4.0/netMHCpan")
     netMHCIIpan_path = os.path.abspath(reference_directory+"/netMHCIIpan-3.2/netMHCIIpan")
     neoantigen_path = os.path.join(args.outdir+"neoantigen_result/", sample + '/')
-    genome = Fasta("/nas/longleaf/home/shengjie/hg19.fa")
+    genome = Fasta(args.genome_fasta)
 
     if not os.path.isdir(neoantigen_path) and not os.path.exists(neoantigen_path):
         os.makedirs(neoantigen_path, 0777)
