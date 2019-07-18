@@ -65,7 +65,7 @@ start = timeit.default_timer()
 outdir = args.outdir
 
 if not os.path.isdir(outdir) and not os.path.exists(outdir):
-    os.makedirs(outdir, 0777)
+    os.makedirs(outdir)
 
 read_length = int(args.max_length)
 tumor_threshold = int(args.tumor_threshold)
