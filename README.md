@@ -9,6 +9,7 @@ and matched normal RNA-seq data.
 ---
 1. multi-string BWT (MSBWT) https://github.com/holtjma/msbwt
 2. MSBWT-IS https://github.com/holtjma/msbwt-is
+3. NetMHCpan 4.0
 
 python packages:
 
