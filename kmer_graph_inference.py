@@ -675,6 +675,8 @@ def main():
     parser.add_argument('normal_junction_file', type=str, nargs='?', help='The file storing normal junctions')
     parser.add_argument('length', type=str, nargs='?', help='The output peptide length')
     parser.add_argument('transcript_min_coverage', type=str, nargs='?', help='The minimum transcript coverage')
+    parser.add_argument('netMHCpan_path', type=str, nargs='?', help='The netMHCpan-4.0 path')
+    parser.add_argument('netMHCIIpan_path', type=str, nargs='?', help='The netMHCIIpan-3.2 path')
     parser.add_argument('outdir', type=str, nargs='?', help='The output directory')
 
     args = parser.parse_args()
@@ -692,14 +694,13 @@ def main():
     min_coverage = int(args.transcript_min_coverage)
     peptide_count = 0
 
-    reference_directory = os.getcwd()
-    netMHCpan_path = os.path.abspath(reference_directory+"/netMHCpan-4.0/netMHCpan")
-    netMHCIIpan_path = os.path.abspath(reference_directory+"/netMHCIIpan-3.2/netMHCIIpan")
+    netMHCpan_path = args.netMHCpan_path
+    netMHCIIpan_path = args.netMHCIIpan_path
     neoantigen_path = os.path.join(args.outdir+"neoantigen_result/", sample + '/')
     genome = Fasta(args.genome_fasta)
 
     if not os.path.isdir(neoantigen_path) and not os.path.exists(neoantigen_path):
-        os.makedirs(neoantigen_path, 0777)
+        os.makedirs(neoantigen_path)
 
     output_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.txt".format(sample, chromosome, length), 'w')
     output_file.write("Variant_peptide_sequence\tDNA_sequence\tChromosome\tPeptide_graph_path\tFull_graph_path\tFull_graph_seq\tTumor_splice\tStrand\tGene\n")
