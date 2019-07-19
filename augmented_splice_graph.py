@@ -378,7 +378,7 @@ def _build_splice_graph(gff_name, bam_name, bam_seq, genome_name, genome_seq, sn
         genome_seq = bam_seq
 
     with _open_bam(bam_name) as bam:
-        for seq_header in bam.header.to_dict()['SQ']:
+        for seq_header in bam.header['SQ']:
             if seq_header['SN'] == bam_seq:
                 seq_len = seq_header['LN']
                 logging.info('Working on seq {0} with length {1}'.format(bam_seq, seq_len))
