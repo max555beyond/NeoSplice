@@ -10,6 +10,7 @@ and matched normal RNA-seq data.
 1. multi-string BWT (MSBWT) https://github.com/holtjma/msbwt
 2. MSBWT-IS https://github.com/holtjma/msbwt-is
 3. NetMHCpan 4.0
+4. NetMHCIIpan 3.2
 
 python packages:
 
@@ -18,6 +19,7 @@ python packages:
 * bcbio-gff 0.6.4
 * pyfaidx 0.5.3.1
 * pysam 0.14.1
+* biopython 1.70
 
 
 **Usage**
