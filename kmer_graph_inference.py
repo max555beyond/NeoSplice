@@ -670,7 +670,7 @@ def main():
     parser.add_argument('gff_file', type=str, nargs='?', help='The GFF file path')
     parser.add_argument('genome_fasta', type=str, nargs='?', help='The genome FASTA file path')
     parser.add_argument('kmer_bam', type=str, nargs='?', help='The bam file storing kmer info')
-    parser.add_argument('splice_graph_dir', type=str, nargs='?', help='The directory storing splice graphs')
+    parser.add_argument('splice_graph', type=str, nargs='?', help='The path to splice graph')
     parser.add_argument('tumor_junction_file', type=str, nargs='?', help='The file storing tumor junctions')
     parser.add_argument('normal_junction_file', type=str, nargs='?', help='The file storing normal junctions')
     parser.add_argument('length', type=str, nargs='?', help='The output peptide length')
@@ -723,7 +723,7 @@ def main():
                 tumor_set.add((line_split[0], int(line_split[1]) - 1, int(line_split[2])))
 
     splice_graph = esgimpl.EsgImpl()
-    splice_graph.load_from_file("{}{}_graph.json".format(splice_graph_dir, chromosome))
+    splice_graph.load_from_file(args.splice_graph)
 
     bam = _open_bam(bam_file)
     annotated_transcripts = _find_annotated_splices(gff_in_file, chromosome)
