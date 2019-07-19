@@ -689,14 +689,13 @@ def main():
     gff_in_file = args.gff_file
     tumor_junction_file = args.tumor_junction_file
     normal_junction_file = args.normal_junction_file
-    splice_graph_dir = args.splice_graph_dir
     length = int(args.length)
     min_coverage = int(args.transcript_min_coverage)
     peptide_count = 0
 
     netMHCpan_path = args.netMHCpan_path
     netMHCIIpan_path = args.netMHCIIpan_path
-    neoantigen_path = os.path.join(args.outdir+"neoantigen_result/", sample + '/')
+    neoantigen_path = os.path.join(args.outdir, "neoantigen_result/", sample + '/')
     genome = Fasta(args.genome_fasta)
 
     if not os.path.isdir(neoantigen_path) and not os.path.exists(neoantigen_path):
