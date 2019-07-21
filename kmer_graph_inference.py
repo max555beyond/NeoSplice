@@ -675,13 +675,15 @@ def main():
     parser.add_argument('normal_junction_file', type=str, nargs='?', help='The file storing normal junctions')
     parser.add_argument('length', type=str, nargs='?', help='The output peptide length')
     parser.add_argument('transcript_min_coverage', type=str, nargs='?', help='The minimum transcript coverage')
+    parser.add_argument('HLA_I', type=str, nargs='?', help='The class I HLA type')
+    parser.add_argument('HLA_II', type=str, nargs='?', help='The class II HLA type')
     parser.add_argument('netMHCpan_path', type=str, nargs='?', help='The netMHCpan-4.0 path')
     parser.add_argument('netMHCIIpan_path', type=str, nargs='?', help='The netMHCIIpan-3.2 path')
     parser.add_argument('outdir', type=str, nargs='?', help='The output directory')
 
     args = parser.parse_args()
-    HLA_string = "HLA-A02:01"
-    HLA_II_string = "DRB1_1601"
+    HLA_string = args.HLA_I
+    HLA_II_string = args.HLA_II
 
     sample = args.sample
     chromosome = args.chromosome
