@@ -76,17 +76,17 @@ def contain_stop_codon(seq):
         return False
 
 
-def run_netMHCpan(sample, chromosome, length, HLA_string, HLA_II_string, path, netMHCpan_path, netMHCIIpan_path):
+def run_netMHCpan(sample, chromosome, length, hla_string, hla_ii_string, path, netMHCpan_path, netMHCIIpan_path):
     if 8 <= length <= 11:
         subprocess.call(
             '{} -f {}{}_outcome_peptide_{}_{}.fasta -BA -l {} -xls  -xlsfile {}{}_peptide_{}_{}.xls -a {}'.format(
-                netMHCpan_path, path, sample, chromosome, length, length, path, sample, chromosome, length, HLA_string),
+                netMHCpan_path, path, sample, chromosome, length, length, path, sample, chromosome, length, hla_string),
             shell=True, stdout=None)
     elif 15 <= length <= 24:
         subprocess.call(
             '{} -f {}{}_outcome_peptide_{}_{}.fasta -length {} -xls  -xlsfile {}{}_peptide_{}_{}.xls -a {}'.format(
                 netMHCIIpan_path, path, sample, chromosome, length, length, path, sample, chromosome, length,
-                HLA_II_string), shell=True, stdout=None)
+                hla_ii_string), shell=True, stdout=None)
 
 
 def _open_bam(bam_name):
@@ -682,8 +682,8 @@ def main():
     parser.add_argument('outdir', type=str, nargs='?', help='The output directory')
 
     args = parser.parse_args()
-    HLA_string = args.HLA_I
-    HLA_II_string = args.HLA_II
+    hla_string = args.HLA_I
+    hla_ii_string = args.HLA_II
 
     sample = args.sample
     chromosome = args.chromosome
@@ -1175,7 +1175,7 @@ def main():
     fasta_file.close()
     bam.close()
     kmer_dat.close()
-    run_netMHCpan(sample, chromosome, length, HLA_string, HLA_II_string, neoantigen_path, netMHCpan_path,
+    run_netMHCpan(sample, chromosome, length, hla_string, hla_ii_string, neoantigen_path, netMHCpan_path,
                   netMHCIIpan_path)
     combine_table(sample, neoantigen_path, length, chromosome)
     logging.info("Done!")
