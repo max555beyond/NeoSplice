@@ -653,7 +653,7 @@ def combine_table(sample, neoantigen_path, length, chromosome):
         subprocess.call(
             'paste {}{}_outcome_peptide_{}_{}.txt {}{}_peptide_MHC_{}_{}.xls > {}{}temp_outcome_peptide_{}_{}.txt'.format(
                 neoantigen_path, sample, chromosome, length, neoantigen_path, sample, chromosome, length,
-                neoantigen_path, sample,  chromosome, length), shell=True)
+                neoantigen_path, sample, chromosome, length), shell=True)
         subprocess.call(
             'paste {}{}_outcome_peptide_{}_{}.txt {}{}temp_outcome_peptide_{}_{}.txt > {}{}_outcome_peptide_{}_{}.txt'.format(
                 neoantigen_path, sample, chromosome, length, neoantigen_path, sample, chromosome, length,
@@ -673,13 +673,13 @@ def main():
     parser.add_argument('splice_graph', type=str, nargs='?', help='The path to splice graph')
     parser.add_argument('tumor_junction_file', type=str, nargs='?', help='The file storing tumor junctions')
     parser.add_argument('normal_junction_file', type=str, nargs='?', help='The file storing normal junctions')
-    parser.add_argument('length', type=str, nargs='?', help='The output peptide length')
     parser.add_argument('transcript_min_coverage', type=str, nargs='?', help='The minimum transcript coverage')
     parser.add_argument('HLA_I', type=str, nargs='?', help='The class I HLA type')
     parser.add_argument('HLA_II', type=str, nargs='?', help='The class II HLA type')
     parser.add_argument('netMHCpan_path', type=str, nargs='?', help='The netMHCpan-4.0 path')
     parser.add_argument('netMHCIIpan_path', type=str, nargs='?', help='The netMHCIIpan-3.2 path')
     parser.add_argument('outdir', type=str, nargs='?', help='The output directory')
+    parser.add_argument('--length_list', type=int, nargs='*', default=[8, 9, 10, 11], help='The output peptide lengths')
 
     args = parser.parse_args()
     hla_string = args.HLA_I
@@ -691,9 +691,9 @@ def main():
     gff_in_file = args.gff_file
     tumor_junction_file = args.tumor_junction_file
     normal_junction_file = args.normal_junction_file
-    length = int(args.length)
+    lengths = args.length_list
     min_coverage = int(args.transcript_min_coverage)
-    peptide_count = 0
+    peptide_counts = collections.defaultdict(int)
 
     netMHCpan_path = args.netMHCpan_path
     netMHCIIpan_path = args.netMHCIIpan_path
@@ -703,9 +703,16 @@ def main():
     if not os.path.isdir(neoantigen_path) and not os.path.exists(neoantigen_path):
         os.makedirs(neoantigen_path)
 
-    output_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.txt".format(sample, chromosome, length), 'w')
-    output_file.write("Variant_peptide_sequence\tDNA_sequence\tChromosome\tPeptide_graph_path\tFull_graph_path\tFull_graph_seq\tTumor_splice\tStrand\tGene\n")
-    fasta_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.fasta".format(sample, chromosome, length), 'w')
+    output_files = []
+    fasta_files = []
+    
+    for length in lengths:
+        output_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.txt".format(sample, chromosome, length), 'w')
+        output_file.write("Variant_peptide_sequence\tDNA_sequence\tChromosome\tPeptide_graph_path\tFull_graph_path\tFull_graph_seq\tTumor_splice\tStrand\tGene\n")
+        output_files.append(output_file)
+        fasta_file = open(neoantigen_path + "{}_outcome_peptide_{}_{}.fasta".format(sample, chromosome, length), 'w')
+        fasta_files.append(fasta_file)
+        peptide_counts[length] = 0
 
     generated_peptides = set()
     normal_set = set()
@@ -865,19 +872,20 @@ def main():
 
                                 frame_before = -len(upstream_seq_temp) % 3
 
-                                supported_seq, upstream_len, downstream_len = get_supported_seq(
-                                    supported_upstream_seqs[combination[0]], full_downstream_seqs[combination[1]],
-                                    unique_path, frame_before, novel_splice, '+', length)
-                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
-                                                                    graph_path)
-                                mut_peptide = translate(supported_seq)
-                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                       upstream_len, generated_peptides, novel_splice, supported_path,
-                                                       "+", chromosome, graph_path, graph_seq,
-                                                       annotated_transcripts[transcript].genename[0], peptide_count)
+                                for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                    supported_seq, upstream_len, downstream_len = get_supported_seq(
+                                        supported_upstream_seqs[combination[0]], full_downstream_seqs[combination[1]],
+                                        unique_path, frame_before, novel_splice, '+', length)
+                                    supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
+                                                                        graph_path)
+                                    mut_peptide = translate(supported_seq)
+                                    count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                           upstream_len, generated_peptides, novel_splice,
+                                                           supported_path, "+", chromosome, graph_path, graph_seq,
+                                                           annotated_transcripts[transcript].genename[0],
+                                                           peptide_counts[length])
 
-                                if count:
-                                    peptide_count = count
+                                    peptide_counts[length] = count
 
                         elif len(full_upstream_paths) and not len(full_downstream_paths):
                             for full_upstream_path, full_upstream_seq, supported_upstream_seq in zip(
@@ -893,21 +901,22 @@ def main():
 
                                 frame_before = -len(upstream_seq_temp) % 3
 
-                                supported_seq, upstream_len, downstream_len = get_supported_seq(supported_upstream_seq,
-                                                                                                '', unique_path,
-                                                                                                frame_before,
-                                                                                                novel_splice, '+',
-                                                                                                length)
-                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
-                                                                    graph_path)
-                                mut_peptide = translate(supported_seq)
-                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                       upstream_len,generated_peptides, novel_splice, supported_path,
-                                                       "+", chromosome, graph_path, graph_seq,
-                                                       annotated_transcripts[transcript].genename[0],peptide_count)
+                                for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                    supported_seq, upstream_len, downstream_len = get_supported_seq(
+                                                                            supported_upstream_seq, '', unique_path,
+                                                                                                    frame_before,
+                                                                                                    novel_splice, '+',
+                                                                                                    length)
+                                    supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
+                                                                        graph_path)
+                                    mut_peptide = translate(supported_seq)
+                                    count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                           upstream_len,generated_peptides, novel_splice, supported_path,
+                                                           "+", chromosome, graph_path, graph_seq,
+                                                           annotated_transcripts[transcript].genename[0],
+                                                           peptide_counts[length])
 
-                                if count:
-                                    peptide_count = count
+                                    peptide_counts[length] = count
 
                         elif unique_path[0][0] <= annotated_transcripts[transcript].start_codon[
                                 -1].location.end.position and len(full_downstream_paths):
@@ -931,18 +940,20 @@ def main():
 
                                 frame_before = -len(upstream_seq_temp) % 3
 
-                                supported_seq, upstream_len, downstream_len = get_supported_seq('',
-                                            full_downstream_seq, unique_path, frame_before, novel_splice, '+', length)
-                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
-                                                                    graph_path)
-                                mut_peptide = translate(supported_seq)
-                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                       upstream_len, generated_peptides, novel_splice, supported_path,
-                                                       "+", chromosome, graph_path, graph_seq,
-                                                       annotated_transcripts[transcript].genename[0],peptide_count)
+                                for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                    supported_seq, upstream_len, downstream_len = get_supported_seq('',
+                                                    full_downstream_seq, unique_path, frame_before, novel_splice, '+',
+                                                                                                                length)
+                                    supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
+                                                                        graph_path)
+                                    mut_peptide = translate(supported_seq)
+                                    count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                           upstream_len, generated_peptides, novel_splice,
+                                                           supported_path, "+", chromosome, graph_path, graph_seq,
+                                                           annotated_transcripts[transcript].genename[0],
+                                                           peptide_counts[length])
 
-                                if count:
-                                    peptide_count = count
+                                    peptide_counts[length] = count
 
 
                         elif unique_path[0][0] <= annotated_transcripts[transcript].start_codon[
@@ -965,19 +976,20 @@ def main():
 
                             frame_before = -len(upstream_seq_temp) % 3
 
-                            supported_seq, upstream_len, downstream_len = get_supported_seq('', '', unique_path,
+                            for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                supported_seq, upstream_len, downstream_len = get_supported_seq('', '', unique_path,
                                                                                             frame_before, novel_splice,
                                                                                             '+', length)
-                            supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
-                                                                graph_path)
-                            mut_peptide = translate(supported_seq)
-                            count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                   upstream_len, generated_peptides, novel_splice, supported_path,
-                                                   "+", chromosome, graph_path, graph_seq,
-                                                   annotated_transcripts[transcript].genename[0], peptide_count)
+                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
+                                                                    graph_path)
+                                mut_peptide = translate(supported_seq)
+                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                       upstream_len, generated_peptides, novel_splice, supported_path,
+                                                       "+", chromosome, graph_path, graph_seq,
+                                                       annotated_transcripts[transcript].genename[0],
+                                                       peptide_counts[length])
 
-                            if count:
-                                peptide_count = count
+                                peptide_counts[length] = count
 
                 elif annotated_transcripts[transcript].strand == "-" and annotated_transcripts[transcript].start_codon[
                     0].location.start.position > novel_splice[1]:
@@ -1042,19 +1054,20 @@ def main():
 
                                 frame_before = -len(upstream_seq_temp) % 3
 
-                                supported_seq, upstream_len, downstream_len = get_supported_seq(
-                                    supported_upstream_seqs[combination[0]], full_downstream_seqs[combination[1]],
-                                    unique_path, frame_before, novel_splice, '-', length)
-                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
-                                                                    graph_path)
-                                mut_peptide = translate(supported_seq)
-                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                       upstream_len, generated_peptides, novel_splice, supported_path,
-                                                       '-', chromosome, graph_path, graph_seq,
-                                                       annotated_transcripts[transcript].genename[0], peptide_count)
-                                
-                                if count:
-                                    peptide_count = count
+                                for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                    supported_seq, upstream_len, downstream_len = get_supported_seq(
+                                        supported_upstream_seqs[combination[0]], full_downstream_seqs[combination[1]],
+                                        unique_path, frame_before, novel_splice, '-', length)
+                                    supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
+                                                                        graph_path)
+                                    mut_peptide = translate(supported_seq)
+                                    count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                           upstream_len, generated_peptides, novel_splice,
+                                                           supported_path, '-', chromosome, graph_path, graph_seq,
+                                                           annotated_transcripts[transcript].genename[0],
+                                                           peptide_counts[length])
+
+                                    peptide_counts[length] = count
 
                         elif len(full_upstream_paths) and not len(full_downstream_paths):
                             for full_upstream_path, full_upstream_seq, supported_upstream_seq in zip(
@@ -1071,21 +1084,22 @@ def main():
 
                                 frame_before = -len(upstream_seq_temp) % 3
 
-                                supported_seq, upstream_len, downstream_len = get_supported_seq(supported_upstream_seq,
-                                                                                                '', unique_path,
-                                                                                                frame_before,
-                                                                                                novel_splice, '-',
-                                                                                                length)
-                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
-                                                                    graph_path)
-                                mut_peptide = translate(supported_seq)
-                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                       upstream_len, generated_peptides, novel_splice, supported_path,
-                                                       '-', chromosome, graph_path, graph_seq,
-                                                       annotated_transcripts[transcript].genename[0], peptide_count)
+                                for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                    supported_seq, upstream_len, downstream_len = get_supported_seq(
+                                                                                supported_upstream_seq,'', unique_path,
+                                                                                                    frame_before,
+                                                                                                    novel_splice, '-',
+                                                                                                    length)
+                                    supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
+                                                                        graph_path)
+                                    mut_peptide = translate(supported_seq)
+                                    count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                           upstream_len, generated_peptides, novel_splice, supported_path,
+                                                           '-', chromosome, graph_path, graph_seq,
+                                                           annotated_transcripts[transcript].genename[0],
+                                                           peptide_counts[length])
 
-                                if count:
-                                    peptide_count = count
+                                    peptide_counts[length] = count
 
                         elif unique_path[-1][1] >= annotated_transcripts[transcript].start_codon[
                             0].location.start.position and len(full_downstream_paths):
@@ -1114,22 +1128,24 @@ def main():
 
                                 frame_before = -len(upstream_seq_temp) % 3
 
-                                supported_seq, upstream_len, downstream_len = get_supported_seq('', full_downstream_seq,
-                                                                                                unique_path,
-                                                                                                frame_before,
-                                                                                                novel_splice, '-',
-                                                                                                length)
+                                for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                    supported_seq, upstream_len, downstream_len = get_supported_seq('',
+                                                                                                    full_downstream_seq,
+                                                                                                    unique_path,
+                                                                                                    frame_before,
+                                                                                                    novel_splice, '-',
+                                                                                                    length)
 
-                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
-                                                                    graph_path)
-                                mut_peptide = translate(supported_seq)
-                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                       upstream_len, generated_peptides, novel_splice, supported_path,
-                                                       '-', chromosome, graph_path, graph_seq,
-                                                       annotated_transcripts[transcript].genename[0], peptide_count)
+                                    supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
+                                                                        graph_path)
+                                    mut_peptide = translate(supported_seq)
+                                    count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                           upstream_len, generated_peptides, novel_splice, supported_path,
+                                                           '-', chromosome, graph_path, graph_seq,
+                                                           annotated_transcripts[transcript].genename[0],
+                                                           peptide_counts[length])
 
-                                if count:
-                                    peptide_count = count
+                                    peptide_counts[length] = count
 
                         elif unique_path[-1][1] >= annotated_transcripts[transcript].start_codon[
                             0].location.start.position and not len(full_upstream_paths) and not len(
@@ -1157,27 +1173,36 @@ def main():
 
                             frame_before = -len(upstream_seq_temp) % 3
 
-                            supported_seq, upstream_len, downstream_len = get_supported_seq('', '', unique_path,
-                                                                                            frame_before, novel_splice,
-                                                                                            '-', length)
-                            supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
-                                                                graph_path)
-                            mut_peptide = translate(supported_seq)
-                            count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
-                                                   upstream_len, generated_peptides, novel_splice, supported_path, '-',
-                                                   chromosome, graph_path, graph_seq,
-                                                   annotated_transcripts[transcript].genename[0], peptide_count)
+                            for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
+                                supported_seq, upstream_len, downstream_len = get_supported_seq('', '', unique_path,
+                                                                                                frame_before,
+                                                                                                novel_splice,
+                                                                                                '-', length)
+                                supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
+                                                                    graph_path)
+                                mut_peptide = translate(supported_seq)
+                                count = output_peptide(mut_peptide, supported_seq, output_file, fasta_file, length,
+                                                       upstream_len, generated_peptides, novel_splice, supported_path,
+                                                       '-', chromosome, graph_path, graph_seq,
+                                                       annotated_transcripts[transcript].genename[0],
+                                                       peptide_counts[length])
 
-                            if count:
-                                peptide_count = count
+                                peptide_counts[length] = count
 
-    output_file.close()
-    fasta_file.close()
+    for output_file in output_files:
+        output_file.close()
+
+    for fasta_file in fasta_files:
+        fasta_file.close()
+
     bam.close()
     kmer_dat.close()
-    run_netMHCpan(sample, chromosome, length, hla_string, hla_ii_string, neoantigen_path, netMHCpan_path,
-                  netMHCIIpan_path)
-    combine_table(sample, neoantigen_path, length, chromosome)
+
+    for length in lengths:
+        run_netMHCpan(sample, chromosome, length, hla_string, hla_ii_string, neoantigen_path, netMHCpan_path,
+                      netMHCIIpan_path)
+        combine_table(sample, neoantigen_path, length, chromosome)
+
     logging.info("Done!")
 
 
