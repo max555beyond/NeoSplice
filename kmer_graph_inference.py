@@ -11,6 +11,7 @@ from pyfaidx import Fasta
 import subprocess
 import re
 import logging
+import pandas
 
 
 class CigarOp:
@@ -634,30 +635,29 @@ def combine_table(sample, neoantigen_path, length, chromosome):
         NMposition = 4
     for HLA in HLA_alleles:
         file_MHC = open(neoantigen_path + '{}_peptide_MHC_{}_{}.xls'.format(sample, chromosome, length), "w")
-        file_MHC.write(('{}Nm'.format(HLA) + '\t' + '{}binding property'.format(HLA)) + '\n')
+        file_MHC.write(('{}_Nm'.format(HLA) + '\t' + '{}_binding_property'.format(HLA)) + '\n')
         current_line = 2
 
         while current_line < len(dat_MHC):
             row_split = dat_MHC[current_line].strip().split('\t')
             if 0 < float(row_split[NMposition]) <= 50:
-                file_MHC.write(row_split[NMposition] + '\t' + 'strong binders' + '\n')
+                file_MHC.write(row_split[NMposition] + '\t' + 'strong_binder' + '\n')
             elif 50 < float(row_split[NMposition]) <= 150:
-                file_MHC.write(row_split[NMposition] + '\t' + 'moderate binders' + '\n')
+                file_MHC.write(row_split[NMposition] + '\t' + 'moderate_binder' + '\n')
             elif 150 < float(row_split[NMposition]) <= 500:
-                file_MHC.write(row_split[NMposition] + '\t' + 'weak binders' + '\n')
+                file_MHC.write(row_split[NMposition] + '\t' + 'weak_binder' + '\n')
             else:
-                file_MHC.write(row_split[NMposition] + '\t' + 'non-binders' + '\n')
+                file_MHC.write(row_split[NMposition] + '\t' + 'non_binder' + '\n')
             current_line += 1
         file_MHC.close()
         NMposition += 5
-        subprocess.call(
-            'paste {}{}_outcome_peptide_{}_{}.txt {}{}_peptide_MHC_{}_{}.xls > {}{}temp_outcome_peptide_{}_{}.txt'.format(
-                neoantigen_path, sample, chromosome, length, neoantigen_path, sample, chromosome, length,
-                neoantigen_path, sample, chromosome, length), shell=True)
-        subprocess.call(
-            'paste {}{}_outcome_peptide_{}_{}.txt {}{}temp_outcome_peptide_{}_{}.txt > {}{}_outcome_peptide_{}_{}.txt'.format(
-                neoantigen_path, sample, chromosome, length, neoantigen_path, sample, chromosome, length,
-                neoantigen_path, sample, chromosome, length), shell=True)
+        dataframe_outcome = pandas.read_csv("{}{}_outcome_peptide_{}_{}.txt".format(
+                neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", header=0)
+        dataframe_mhc = pandas.read_csv("{}{}_peptide_MHC_{}_{}.xls".format(
+                neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", header=0)
+        dataframe_merged = pandas.concat([dataframe_outcome, dataframe_mhc], axis=1)
+        dataframe_merged.to_csv("{}{}_outcome_peptide_{}_{}.txt".format(
+                            neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", index=False)
 
 
 def main():
