@@ -721,14 +721,14 @@ def main():
     with open(normal_junction_file) as f:
         for line in f:
             line_split = line.strip().split("\t")
-            if int(line_split[6]) >= 3:
-                normal_set.add((line_split[0], int(line_split[1]) - 1, int(line_split[2])))
+            if int(line_split[3]) >= 3:
+                normal_set.add((line_split[0], int(line_split[1]), int(line_split[2])))
 
     with open(tumor_junction_file) as f:
         for line in f:
             line_split = line.strip().split("\t")
-            if (line_split[0], int(line_split[1]) - 1, int(line_split[2])) not in normal_set and int(line_split[6]) >= 20:
-                tumor_set.add((line_split[0], int(line_split[1]) - 1, int(line_split[2])))
+            if (line_split[0], int(line_split[1]), int(line_split[2])) not in normal_set and int(line_split[3]) >= 20:
+                tumor_set.add((line_split[0], int(line_split[1]), int(line_split[2])))
 
     splice_graph = esgimpl.EsgImpl()
     splice_graph.load_from_file(args.splice_graph)
