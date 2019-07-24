@@ -1192,7 +1192,7 @@ def main():
                                                        '-', chromosome, graph_path, graph_seq,
                                                        annotated_transcripts[transcript].genename[0],
                                                        peptide_counts[length])
-                                
+
                                 if count:
                                     peptide_counts[length] = count
 
@@ -1206,9 +1206,12 @@ def main():
     kmer_dat.close()
 
     for length in lengths:
-        run_netMHCpan(sample, chromosome, length, hla_string, hla_ii_string, neoantigen_path, netMHCpan_path,
-                      netMHCIIpan_path)
-        combine_table(sample, neoantigen_path, length, chromosome)
+        if peptide_counts[length] != 0:
+            run_netMHCpan(sample, chromosome, length, hla_string, hla_ii_string, neoantigen_path, netMHCpan_path,
+                          netMHCIIpan_path)
+            combine_table(sample, neoantigen_path, length, chromosome)
+        else:
+            logging.info("No peptide predicted for length {}".format(length))
 
     logging.info("Done!")
 
