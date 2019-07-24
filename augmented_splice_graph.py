@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 """splice_graph: Build a splice graph from a bam file of aligned reads and a reference genome.
 
