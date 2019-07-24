@@ -884,8 +884,8 @@ def main():
                                                            supported_path, "+", chromosome, graph_path, graph_seq,
                                                            annotated_transcripts[transcript].genename[0],
                                                            peptide_counts[length])
-
-                                    peptide_counts[length] = count
+                                    if count:
+                                        peptide_counts[length] = count
 
                         elif len(full_upstream_paths) and not len(full_downstream_paths):
                             for full_upstream_path, full_upstream_seq, supported_upstream_seq in zip(
@@ -916,7 +916,8 @@ def main():
                                                            annotated_transcripts[transcript].genename[0],
                                                            peptide_counts[length])
 
-                                    peptide_counts[length] = count
+                                    if count:
+                                        peptide_counts[length] = count
 
                         elif unique_path[0][0] <= annotated_transcripts[transcript].start_codon[
                                 -1].location.end.position and len(full_downstream_paths):
@@ -953,7 +954,8 @@ def main():
                                                            annotated_transcripts[transcript].genename[0],
                                                            peptide_counts[length])
 
-                                    peptide_counts[length] = count
+                                    if count:
+                                        peptide_counts[length] = count
 
 
                         elif unique_path[0][0] <= annotated_transcripts[transcript].start_codon[
@@ -989,7 +991,8 @@ def main():
                                                        annotated_transcripts[transcript].genename[0],
                                                        peptide_counts[length])
 
-                                peptide_counts[length] = count
+                                if count:
+                                    peptide_counts[length] = count
 
                 elif annotated_transcripts[transcript].strand == "-" and annotated_transcripts[transcript].start_codon[
                     0].location.start.position > novel_splice[1]:
@@ -1067,7 +1070,8 @@ def main():
                                                            annotated_transcripts[transcript].genename[0],
                                                            peptide_counts[length])
 
-                                    peptide_counts[length] = count
+                                    if count:
+                                        peptide_counts[length] = count
 
                         elif len(full_upstream_paths) and not len(full_downstream_paths):
                             for full_upstream_path, full_upstream_seq, supported_upstream_seq in zip(
@@ -1099,7 +1103,8 @@ def main():
                                                            annotated_transcripts[transcript].genename[0],
                                                            peptide_counts[length])
 
-                                    peptide_counts[length] = count
+                                    if count:
+                                        peptide_counts[length] = count
 
                         elif unique_path[-1][1] >= annotated_transcripts[transcript].start_codon[
                             0].location.start.position and len(full_downstream_paths):
@@ -1145,7 +1150,8 @@ def main():
                                                            annotated_transcripts[transcript].genename[0],
                                                            peptide_counts[length])
 
-                                    peptide_counts[length] = count
+                                    if count:
+                                        peptide_counts[length] = count
 
                         elif unique_path[-1][1] >= annotated_transcripts[transcript].start_codon[
                             0].location.start.position and not len(full_upstream_paths) and not len(
@@ -1186,8 +1192,9 @@ def main():
                                                        '-', chromosome, graph_path, graph_seq,
                                                        annotated_transcripts[transcript].genename[0],
                                                        peptide_counts[length])
-
-                                peptide_counts[length] = count
+                                
+                                if count:
+                                    peptide_counts[length] = count
 
     for output_file in output_files:
         output_file.close()
