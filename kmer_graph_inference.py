@@ -1212,6 +1212,8 @@ def main():
             combine_table(sample, neoantigen_path, length, chromosome)
         else:
             logging.info("No peptide predicted for length {}".format(length))
+            empty_file = open("{}{}_peptide_{}_{}.xls".format(neoantigen_path, sample, chromosome, length), 'w')
+            empty_file.close()
 
     logging.info("Done!")
 
