@@ -23,6 +23,7 @@ def main():
                 outf2.write(">" + read.query_name + '\n')
                 outf2.write(read.query_alignment_sequence + '\n')
 
+    samfile.close()
     outf1.close()
     outf2.close()
 
