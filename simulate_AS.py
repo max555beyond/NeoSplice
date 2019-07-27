@@ -222,14 +222,8 @@ def write_gtf(gene_data, tumor_outf, normal_outf, splice_type=None):
         novel_splice = possible_novel_splices[novel_splice_idx]
 
     else:
-        possible_novel_splices = [(a, b) for a, b in
-                                  itertools.product(list(transcript_left_splices), list(transcript_right_splices)) if
-                                  a + 100 < b and (a, b) not in gene_data.all_splices]
-
-        if not possible_novel_splices:
-            return
-        novel_splice_idx = np.random.choice(len(possible_novel_splices))
-        novel_splice = possible_novel_splices[novel_splice_idx]
+        logging.info("type not supported")
+        return
 
     tumor_outf.write('\t'.join(
         [gene_data.chromosome, "test", "gene", str(gene_data.startposition + 1), str(gene_data.endposition),
@@ -448,8 +442,8 @@ def main():
     parser.add_argument('sample_id', type=str, nargs='?', help='provide sample id here')
     parser.add_argument('gff_file', type=str, nargs='?', help='provide gff3 file path here')
     parser.add_argument('outdir', type=str, nargs='?', help='provide outdir here')
-    parser.add_argument("num_alterations", type=int, nargs='?', help='provide number of altered genes per chromosome here')
-    parser.add_argument("--splice_type", type=str, nargs='?', help='provide splice type here')
+    parser.add_argument("num_alterations", type=int, nargs='?', help='provide number of altered genes per chromosome')
+    parser.add_argument("simulation_type", type=str, nargs='?', help='provide simulation type')
     args = parser.parse_args()
 
     gff_in_file = args.gff_file
@@ -460,13 +454,13 @@ def main():
     tumor_outf = open(tumor_GTF_output, 'w')
     normal_outf = open(normal_GTF_output, 'w')
 
-    splice_type = "random"
-    if args.splice_type:
-        splice_type = args.splice_type
-
     annotatedTransctipts = {}
 
     for i in range(1, 23):
+        if args.simulation_type == "random":
+            splice_type = np.random.choice(["exon_skipping", "exon_loss", "intron_gain"])
+        else:
+            splice_type = args.simulation_type
         chromosome = "chr" + str(i)
         logging.info("processing {}".format(chromosome))
         annotatedTransctipts[chromosome] = _find_annotated_transcripts(gff_in_file, chromosome)
