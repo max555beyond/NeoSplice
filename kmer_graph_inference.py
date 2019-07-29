@@ -528,28 +528,27 @@ def retrieve_splice_edge(read):
     return splices
 
 
-def get_supported_seq(upstream_seq, downstream_seq, unique_path, frame_before, novel_splice, strand, length):
+def get_supported_seq(upstream_seq, downstream_seq, unique_path, frame_before, novel_splice, strand, length, start_pos):
     if strand == "+":
-        selected_upstream_seq = (upstream_seq + ''.join([edge[4] for edge in unique_path if
-                            edge[2] != "splice" and edge[2] != "del" and edge[0] <
-                            novel_splice[0]]))
+        selected_upstream_seq = (upstream_seq + ''.join([edge[4] for edge in unique_path if edge[2] != "splice"
+                                    and edge[2] != "del" and start_pos <= edge[0] and edge[1] <= novel_splice[0]]))
         # full upstream codon length
         full_frame_len = min(length - 1, (len(selected_upstream_seq) - (3 - frame_before) % 3) // 3)
         selected_upstream_seq = selected_upstream_seq[-3 * full_frame_len - (3 - frame_before) % 3:]
         selected_downstream_seq = ''.join([edge[4] for edge in unique_path if
-                            edge[2] != "splice" and edge[2] != "del" and edge[0] > novel_splice[
-                            0]]) + downstream_seq
+                                            edge[2] != "splice" and edge[2] != "del" and edge[0] >= novel_splice[
+                                            1]]) + downstream_seq
         full_frame_len_downstream = min((len(selected_downstream_seq) - frame_before) // 3, length - 1)
         selected_downstream_seq = selected_downstream_seq[:frame_before + full_frame_len_downstream * 3]
     else:
         selected_upstream_seq = (upstream_seq + reverse_complement(''.join([edge[4] for edge in unique_path if
-                            edge[2] != "splice" and edge[2] != "del" and edge[1] >
-                            novel_splice[1]])))
+                                    edge[2] != "splice" and edge[2] != "del" and novel_splice[1] <= edge[0]
+                                                                            and edge[1] <= start_pos])))
         full_frame_len = min(length - 1, (len(selected_upstream_seq) - (3 - frame_before) % 3) / 3)
         selected_upstream_seq = selected_upstream_seq[-3 * full_frame_len - (3 - frame_before) % 3:]
         selected_downstream_seq = reverse_complement(''.join([edge[4] for edge in unique_path if
-                                    edge[2] != "splice" and edge[2] != "del" and edge[1] < novel_splice[
-                                        1]])) + downstream_seq
+                                        edge[2] != "splice" and edge[2] != "del" and edge[1] <= novel_splice[
+                                        0]])) + downstream_seq
         full_frame_len_downstream = min((len(selected_downstream_seq) - frame_before) // 3, length - 1)
         selected_downstream_seq = selected_downstream_seq[:frame_before + full_frame_len_downstream * 3]
 
@@ -652,9 +651,9 @@ def combine_table(sample, neoantigen_path, length, chromosome):
         file_MHC.close()
         NMposition += 5
         dataframe_outcome = pandas.read_csv("{}{}_outcome_peptide_{}_{}.txt".format(
-                neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", header=0)
+                neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", header=0, index_col=False)
         dataframe_mhc = pandas.read_csv("{}{}_peptide_MHC_{}_{}.xls".format(
-                neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", header=0)
+                neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", header=0, index_col=False)
         dataframe_merged = pandas.concat([dataframe_outcome, dataframe_mhc], axis=1)
         dataframe_merged.to_csv("{}{}_outcome_peptide_{}_{}.txt".format(
                             neoantigen_path, sample, chromosome, length), sep='\t', encoding="utf-8", index=False)
@@ -779,6 +778,7 @@ def main():
             unique_path_edges[tuple(path_edges)].add(kmer.query_name)
             unique_path_splices[tuple(path_edges)].add(novel_splice)
 
+    kmer_dat.close()
     logging.info("found {} unique kmer paths".format(len(unique_path_edges)))
 
     for kmer_num, unique_path in enumerate(unique_path_edges):
@@ -865,7 +865,7 @@ def main():
                                     combination[1]]
                                 upstream_seq_temp = full_upstream_seqs[combination[0]] + ''.join(
                                     [edge[4] for edge in unique_path if
-                                     edge[2] != "splice" and edge[2] != "del" and edge[0] < novel_splice[0]])
+                                     edge[2] != "splice" and edge[2] != "del" and edge[1] <= novel_splice[0]])
 
                                 if contain_stop_codon(upstream_seq_temp):
                                     continue
@@ -875,7 +875,8 @@ def main():
                                 for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
                                     supported_seq, upstream_len, downstream_len = get_supported_seq(
                                         supported_upstream_seqs[combination[0]], full_downstream_seqs[combination[1]],
-                                        unique_path, frame_before, novel_splice, '+', length)
+                                        unique_path, frame_before, novel_splice, '+', length, annotated_transcripts
+                                        [transcript].start_codon[-1].location.end.position)
                                     supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
                                                                         graph_path)
                                     mut_peptide = translate(supported_seq)
@@ -894,7 +895,7 @@ def main():
                                 graph_seq = full_upstream_seq + kmer_seq
                                 upstream_seq_temp = full_upstream_seq + ''.join(
                                     [edge[4] for edge in unique_path if
-                                     edge[2] != "splice" and edge[2] != "del" and edge[0] < novel_splice[0]])
+                                     edge[2] != "splice" and edge[2] != "del" and edge[1] <= novel_splice[0]])
 
                                 if contain_stop_codon(upstream_seq_temp):
                                     continue
@@ -904,9 +905,9 @@ def main():
                                 for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
                                     supported_seq, upstream_len, downstream_len = get_supported_seq(
                                                                             supported_upstream_seq, '', unique_path,
-                                                                                                    frame_before,
-                                                                                                    novel_splice, '+',
-                                                                                                    length)
+                                                                            frame_before, novel_splice, '+', length,
+                                                                            annotated_transcripts[transcript].
+                                                                                start_codon[-1].location.end.position)
                                     supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
                                                                         graph_path)
                                     mut_peptide = translate(supported_seq)
@@ -933,7 +934,7 @@ def main():
                                 upstream_seq_temp = ''.join([edge[4] for edge in unique_path if
                                                     edge[2] != "splice" and edge[2] != "del" and
                                                      annotated_transcripts[transcript].start_codon[
-                                        -1].location.end.position <= edge[0] < novel_splice[0]])
+                                        -1].location.end.position <= edge[0] and edge[1] <= novel_splice[0]])
                                 # make sure start codon is not skipped by splice or deletion and no stop codon before splice
                                 if graph_path[0][0] != annotated_transcripts[transcript].start_codon[
                                         -1].location.end.position or contain_stop_codon(upstream_seq_temp):
@@ -944,7 +945,8 @@ def main():
                                 for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
                                     supported_seq, upstream_len, downstream_len = get_supported_seq('',
                                                     full_downstream_seq, unique_path, frame_before, novel_splice, '+',
-                                                                                                                length)
+                                                    length, annotated_transcripts[transcript].
+                                                    start_codon[-1].location.end.position)
                                     supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
                                                                         graph_path)
                                     mut_peptide = translate(supported_seq)
@@ -970,7 +972,8 @@ def main():
                             upstream_seq_temp = ''.join([edge[4] for edge in unique_path if
                                                          edge[2] != "splice" and edge[2] != "del" and
                                                          annotated_transcripts[transcript].start_codon[
-                                                             -1].location.end.position <= edge[0] < novel_splice[0]])
+                                                             -1].location.end.position <= edge[0] and edge[1] <=
+                                                         novel_splice[0]])
 
                             if graph_path[0][0] != annotated_transcripts[transcript].start_codon[
                                     -1].location.end.position or contain_stop_codon(upstream_seq_temp):
@@ -981,7 +984,9 @@ def main():
                             for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
                                 supported_seq, upstream_len, downstream_len = get_supported_seq('', '', unique_path,
                                                                                             frame_before, novel_splice,
-                                                                                            '+', length)
+                                                                                            '+', length,
+                                                                                    annotated_transcripts[transcript].
+                                                                                start_codon[-1].location.end.position)
                                 supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '+',
                                                                     graph_path)
                                 mut_peptide = translate(supported_seq)
@@ -1050,7 +1055,7 @@ def main():
                                             full_downstream_seqs[combination[1]]
                                 upstream_seq_temp = full_upstream_seqs[combination[0]] + reverse_complement(''.join(
                                         [edge[4] for edge in unique_path if
-                                         edge[2] != "splice" and edge[2] != "del" and edge[1] > novel_splice[1]]))
+                                         edge[2] != "splice" and edge[2] != "del" and edge[0] >= novel_splice[1]]))
 
                                 if contain_stop_codon(upstream_seq_temp):
                                     continue
@@ -1060,7 +1065,8 @@ def main():
                                 for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
                                     supported_seq, upstream_len, downstream_len = get_supported_seq(
                                         supported_upstream_seqs[combination[0]], full_downstream_seqs[combination[1]],
-                                        unique_path, frame_before, novel_splice, '-', length)
+                                        unique_path, frame_before, novel_splice, '-', length, annotated_transcripts[
+                                                                    transcript].start_codon[0].location.start.position)
                                     supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
                                                                         graph_path)
                                     mut_peptide = translate(supported_seq)
@@ -1081,7 +1087,7 @@ def main():
                                 graph_seq = full_upstream_seq + reverse_complement(kmer_seq)
                                 upstream_seq_temp = full_upstream_seq + reverse_complement(''.join(
                                     [edge[4] for edge in unique_path if
-                                     edge[2] != "splice" and edge[2] != "del" and edge[1] > novel_splice[1]]))
+                                     edge[2] != "splice" and edge[2] != "del" and edge[0] >= novel_splice[1]]))
 
                                 if contain_stop_codon(upstream_seq_temp):
                                     continue
@@ -1090,10 +1096,10 @@ def main():
 
                                 for output_file, fasta_file, length in zip(output_files, fasta_files, lengths):
                                     supported_seq, upstream_len, downstream_len = get_supported_seq(
-                                                                                supported_upstream_seq,'', unique_path,
-                                                                                                    frame_before,
-                                                                                                    novel_splice, '-',
-                                                                                                    length)
+                                                                                supported_upstream_seq, '', unique_path,
+                                                                                frame_before, novel_splice, '-', length,
+                                                                                annotated_transcripts[transcript].
+                                                                                start_codon[0].location.start.position)
                                     supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
                                                                         graph_path)
                                     mut_peptide = translate(supported_seq)
@@ -1122,7 +1128,7 @@ def main():
                                 upstream_seq_temp = reverse_complement(''.join([edge[4] for edge in unique_path if
                                                                                 edge[2] != "splice" and edge[
                                                                                     2] != "del" and novel_splice[
-                                                                                    1] < edge[1] <=
+                                                                                    1] <= edge[0] and edge[1] <=
                                                                                 annotated_transcripts[
                                                                                     transcript].start_codon[
                                                                                     0].location.start.position]))
@@ -1139,8 +1145,10 @@ def main():
                                                                                                     unique_path,
                                                                                                     frame_before,
                                                                                                     novel_splice, '-',
-                                                                                                    length)
-
+                                                                                                    length,
+                                                                                                annotated_transcripts[
+                                                                                                transcript].start_codon[
+                                                                                            0].location.start.position)
                                     supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
                                                                         graph_path)
                                     mut_peptide = translate(supported_seq)
@@ -1168,7 +1176,7 @@ def main():
                             upstream_seq_temp = reverse_complement(''.join([edge[4] for edge in unique_path if
                                                                             edge[2] != "splice" and edge[
                                                                                 2] != "del" and novel_splice[
-                                                                                1] < edge[1] <=
+                                                                                1] <= edge[0] and edge[1] <=
                                                                             annotated_transcripts[
                                                                                 transcript].start_codon[
                                                                                 0].location.start.position]))
@@ -1183,7 +1191,10 @@ def main():
                                 supported_seq, upstream_len, downstream_len = get_supported_seq('', '', unique_path,
                                                                                                 frame_before,
                                                                                                 novel_splice,
-                                                                                                '-', length)
+                                                                                                '-', length,
+                                                                                                annotated_transcripts[
+                                                                                                transcript].start_codon[
+                                                                                            0].location.start.position)
                                 supported_path = get_supported_path(upstream_len, downstream_len, novel_splice, '-',
                                                                     graph_path)
                                 mut_peptide = translate(supported_seq)
@@ -1203,7 +1214,6 @@ def main():
         fasta_file.close()
 
     bam.close()
-    kmer_dat.close()
 
     for length in lengths:
         if peptide_counts[length] != 0:
