@@ -78,7 +78,7 @@ def main():
                     else:
                         logging.warn('Unexpected cigar op {}'.format(cigar_map[operation]))
 
-                if "S" in cigarString_temp:
+                if "S" in cigarString_temp or "N" not in cigarString_temp:
                     continue
 
                 kmer_read.cigarstring = cigarString_temp
