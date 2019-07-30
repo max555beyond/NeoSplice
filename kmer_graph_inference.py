@@ -151,6 +151,7 @@ def _find_annotated_splices(gff_in_file, chromosome):
                                                                          transcript.qualifiers["transcript_id"],
                                                                          gene.qualifiers["gene_name"], cds_list,
                                                                          start_codon, stop_codon, splice_list)
+    in_handle.close()
     return transcripts_dic
 
 
