@@ -308,6 +308,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
     seqs = []
     possible_path_readsets = []
     visited_ins_nodes = set()
+    traversed_paths = collections.Counter()
 
     if upstream_limit and (
             start_node_outer >= upstream_limit and direction == +1 or start_node_outer <= upstream_limit
@@ -315,6 +316,8 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
         return possible_path_list, possible_seq_list, possible_path_readsets
 
     def path(graph, start_node, read_set, direction, strand, visited_ins_nodes):
+        if traversed_paths["traversed"] >= 33:
+            return
         continue_indication = False
         edges = [edge for edge in graph.edges(start_node, data=True, keys=True) if
                  edge[1] not in visited_ins_nodes and len(
@@ -325,7 +328,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
             ins_edges_reads = set.intersection(
                 set.union(*[get_read(chromosome, edge, bam, direction, genome) for edge in ins_edges]), read_set)
 
-            # determine if all reads containing non-ins edges also contain insertions, if so must go through is edges first
+            # determine if all reads containing non-ins edges also contain insertions, if so must go through ins edges first
             for edge in edges[:]:
                 if edge[0] != edge[1] and set.intersection(get_read(chromosome, edge, bam, direction, genome),
                                                            read_set).issubset(ins_edges_reads):
@@ -338,6 +341,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
             # path with splice or del edge extend past start codon will not be included in the result
             if upstream_limit and (
                   (edge[1] < upstream_limit) and (direction == -1) or (edge[1] > upstream_limit) and (direction == +1)):
+                traversed_paths["traversed"] += 1
                 continue_indication = True
                 continue
 
@@ -390,6 +394,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
 
         if not continue_indication and len(paths):
             possible_path_readsets.append(read_set)
+            traversed_paths["traversed"] += 1
             if direction == +1:
                 consecutive_path = tuple(paths)
                 possible_path_list.append(consecutive_path)
@@ -732,6 +737,13 @@ def main():
 
     splice_graph = esgimpl.EsgImpl()
     splice_graph.load_from_file(args.splice_graph)
+    possible_genes = splice_graph.get_genes()
+    sorted_exons = {}
+
+    for idx, gene in enumerate(possible_genes):
+        exons = [edge for edge in gene.edges(keys=True) if edge[2] == "exon"]
+        se = sorted(exons, key=lambda x: x[0])
+        sorted_exons[idx] = se
 
     bam = _open_bam(bam_file)
     annotated_transcripts = _find_annotated_splices(gff_in_file, chromosome)
@@ -752,14 +764,19 @@ def main():
             if (chromosome,) + novel_splice[:-1] not in tumor_set:
                 continue
 
+            gene = None
+            se = None
             if novel_splice in splice_subgraph:
-                gene = splice_subgraph[novel_splice]
+                idx, gene = splice_subgraph[novel_splice]
+                se = sorted_exons[idx]
             else:
-                _, gene = splice_graph._to_gene(novel_splice)
-                splice_subgraph[novel_splice] = gene
+                for idx, candidate_gene in enumerate(possible_genes):
+                    if novel_splice in candidate_gene.edges(keys=True):
+                        gene = candidate_gene
+                        splice_subgraph[novel_splice] = idx, gene
+                        se = sorted_exons[idx]
+                        break
 
-            exons = [edge for edge in gene.edges(keys=True) if edge[2] == "exon"]
-            se = sorted(exons, key=lambda x: x[0])
             start_exon = _get_exon_edge(se, kmer.reference_start)
             end_exon = _get_exon_edge(se, kmer.reference_end - 1)
 
@@ -794,7 +811,7 @@ def main():
         for novel_splice in novel_splices:
             logging.info("processing novel splice" + str(novel_splice))
 
-            gene = splice_subgraph[novel_splice]
+            _, gene = splice_subgraph[novel_splice]
             kmer_seq = ''.join([edge[4] for edge in unique_path if
                         edge[2] != "splice" and edge[2] != "del"])
 

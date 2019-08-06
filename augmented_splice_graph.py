@@ -132,6 +132,13 @@ def find_genes(splice_graph, filter=None):
             yield (i, gene)
 
 
+def find_all_genes(splice_graph):
+    """
+    Return all genes in the splice graph
+    """
+    return [gene for gene in nx.weakly_connected_component_subgraphs(splice_graph)]
+
+
 def _save_splice_graph_json(splice_graph, name, indent=None):
     with open('{0}.json'.format(name), 'w') as f:
         # Convert to serializable representation and write json file

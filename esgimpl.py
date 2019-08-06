@@ -16,3 +16,6 @@ class EsgImpl(EsgBase):
 
     def _to_gene(self, e):
         return sg.find_genes(self._splice_graph, lambda x: e in x.edges_iter(keys=True)).next()
+
+    def get_genes(self):
+        return sg.find_all_genes(self._splice_graph)
