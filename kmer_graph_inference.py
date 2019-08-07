@@ -755,7 +755,7 @@ def main():
     validated_path = {}
     splice_subgraph = {}
 
-    logging.info("reading kmers")
+    logging.info("reading kmers and mapping to splice graph")
 
     for kmer in kmer_dat.fetch(chromosome):
         novel_splices = retrieve_splice_edge(kmer)
