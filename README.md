@@ -20,6 +20,7 @@ python packages:
 * pyfaidx 0.5.3.1
 * pysam 0.14.1
 * biopython 1.70
+* scipy 1.2.0
 
 
 **Usage**
