@@ -203,7 +203,7 @@ def _get_exon_edge_read(chromosome, edge, bam, direction, genome):
         edge = edge[:2][::-1] + edge[2:]
 
     read_pos = collections.defaultdict(set)
-    for column in bam.pileup(chromosome, edge[0], edge[1], truncate=True):
+    for column in bam.pileup(chromosome, edge[0], edge[1], truncate=True, max_depth=100000):
         for read in column.pileups:
             if not read.is_refskip and not read.is_del and read.alignment.query_sequence[read.query_position] == \
                     genome[chromosome][column.reference_pos].seq:
