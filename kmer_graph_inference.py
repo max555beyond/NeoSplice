@@ -181,7 +181,7 @@ def _get_structrual_edge_read(chromosome, edge, bam, direction):
                 current_interval_start = current_interval_end
                 read_pos += count
             else:
-                logging.warn('Unexpected cigar op {0}'.format(op))
+                logging.warning('Unexpected cigar op {0}'.format(op))
 
             if edge[2] == 'splice' and current_interval_start == edge[0] and current_interval_end == edge[1] and \
                     op == CigarOp.REF_SKIP:
@@ -262,6 +262,10 @@ def find_path_annotated(graph_outer, start_node_outer, target_node, annotated_sp
 
             return
 
+        if len(paths) > 800:
+            logging.warning("Annotated path too long, skip annotated transcript")
+            return
+
         for edge in graph.edges(start_node, data=True, keys=True):
             if edge[2] == 'splice':
                 if (direction == +1 and (edge[0], edge[1]) in annotated_splices and edge[1] <= target_node) or (
@@ -317,7 +321,13 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
 
     def path(graph, start_node, read_set, direction, strand, visited_ins_nodes):
         if traversed_paths["traversed"] >= 33:
+            logging.warning("Too many paths to search, skip searching")
             return
+
+        if len(paths) > 800:
+            logging.warning("Search path too long, skip searching")
+            return
+
         continue_indication = False
         edges = [edge for edge in graph.edges(start_node, data=True, keys=True) if
                  edge[1] not in visited_ins_nodes and len(
