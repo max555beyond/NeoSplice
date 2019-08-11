@@ -305,7 +305,7 @@ def _pileup(bam, reference, seq, seq_len, splice_graph, snp_cutoff, min_coverage
     start = None
     last_pos = None
 
-    for column in bam.pileup(seq, 0, seq_len, truncate=True, max_depth=100000):
+    for column in bam.pileup(seq, 0, seq_len, truncate=True, max_depth=200000):
         # Analyze reads and call snps
         ref_base = reference[column.reference_pos].seq.upper()
         coverage, bases, snp, snp_weight = _analyze_column(column, snp_cutoff, p_error, ref_base)
