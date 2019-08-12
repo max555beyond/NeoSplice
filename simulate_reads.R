@@ -15,4 +15,4 @@ gtf = gffRead(gtfpath)
 
 
 simulate_experiment(gtf=gtf, seqpath=fasta, num_reps=1, fold_changes=1, outdir=args[2], readlen=100,
-                    reads_per_transcript=1000, distr="normal", error_model='uniform', error_rate=0, bias=args[4])
+                    reads_per_transcript=1000, distr="normal", error_model="illumina5", bias=args[4])
