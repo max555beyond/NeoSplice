@@ -226,14 +226,18 @@ def _get_snp_read(chromosome, edge, bam, direction):
     return reads
 
 
-def get_read(chromosome, edge, bam, direction, genome):
+def get_read(chromosome, edge, bam, direction, genome, edge_reads):
+    if edge[:3] in edge_reads:
+        return edge_reads[edge[:3]]
+
     if edge[2] == 'exon':
-        return _get_exon_edge_read(chromosome, edge, bam, direction, genome)
+        edge_reads[edge[:3]] = _get_exon_edge_read(chromosome, edge, bam, direction, genome)
     # SNP edge
     elif len(edge[2]) == 1:
-        return _get_snp_read(chromosome, edge, bam, direction)
+        edge_reads[edge[:3]] = _get_snp_read(chromosome, edge, bam, direction)
     else:
-        return _get_structrual_edge_read(chromosome, edge, bam, direction)
+        edge_reads[edge[:3]] = _get_structrual_edge_read(chromosome, edge, bam, direction)
+    return edge_reads[edge[:3]]
 
 
 def find_path_annotated(graph_outer, start_node_outer, target_node, annotated_splices, direction):
@@ -295,7 +299,7 @@ def find_path_annotated(graph_outer, start_node_outer, target_node, annotated_sp
                 else:
                     continue
 
-                path(graph, edge[1], target_node, annotated_splices,direction)
+                path(graph, edge[1], target_node, annotated_splices, direction)
                 paths.pop()
                 seqs.pop()
                 return
@@ -305,7 +309,7 @@ def find_path_annotated(graph_outer, start_node_outer, target_node, annotated_sp
 
 
 def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, direction, strand, genome, min_coverage,
-                  upstream_limit=None):
+                  edge_reads, upstream_limit=None):
     possible_path_list = []
     paths = []
     possible_seq_list = []
@@ -319,7 +323,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
             and direction == -1):
         return possible_path_list, possible_seq_list, possible_path_readsets
 
-    def path(graph, start_node, read_set, direction, strand, visited_ins_nodes):
+    def path(graph, start_node, read_set, direction, strand, visited_ins_nodes, edge_reads):
         if traversed_paths["traversed"] >= 33:
             logging.warning("Too many paths to search, skip searching")
             return
@@ -331,17 +335,19 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
         continue_indication = False
         edges = [edge for edge in graph.edges(start_node, data=True, keys=True) if
                  edge[1] not in visited_ins_nodes and len(
-                     set.intersection(get_read(chromosome, edge, bam, direction, genome), read_set)) >= min_coverage]
+                     set.intersection(get_read(chromosome, edge, bam, direction, genome, edge_reads),
+                                      read_set)) >= min_coverage]
         ins_edges = [edge for edge in edges if edge[0] == edge[1]]
 
         if ins_edges:
             ins_edges_reads = set.intersection(
-                set.union(*[get_read(chromosome, edge, bam, direction, genome) for edge in ins_edges]), read_set)
+                set.union(*[get_read(chromosome, edge, bam, direction, genome, edge_reads) for edge in ins_edges]),
+                read_set)
 
             # determine if all reads containing non-ins edges also contain insertions, if so must go through ins edges first
             for edge in edges[:]:
-                if edge[0] != edge[1] and set.intersection(get_read(chromosome, edge, bam, direction, genome),
-                                                           read_set).issubset(ins_edges_reads):
+                if edge[0] != edge[1] and set.intersection(get_read(chromosome, edge, bam, direction, genome,
+                                                                    edge_reads), read_set).issubset(ins_edges_reads):
                     edges.remove(edge)
 
         for edge in edges:
@@ -355,7 +361,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
                 continue_indication = True
                 continue
 
-            new_read_set = set.intersection(get_read(chromosome, edge, bam, direction, genome), read_set)
+            new_read_set = set.intersection(get_read(chromosome, edge, bam, direction, genome, edge_reads), read_set)
             # Splice and deletion edges
             if edge[2] == "splice" or edge[2] == "del":
                 continue_indication = True
@@ -364,7 +370,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
                 else:
                     paths.append(edge[:3] + (len(new_read_set),))
 
-                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes)
+                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes, edge_reads)
                 paths.pop()
             # Exon edges
             elif edge[2] == 'exon':
@@ -375,7 +381,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
                 else:
                     paths.append(edge[:3] + (len(new_read_set),))
 
-                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes)
+                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes, edge_reads)
                 seqs.pop()
                 paths.pop()
             # Insertion edges
@@ -384,7 +390,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
                 seqs.append(edge[3]["seq"])
                 paths.append(edge[:3] + (len(new_read_set),))
                 visited_ins_nodes.add(edge[1])
-                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes)
+                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes, edge_reads)
                 visited_ins_nodes.remove(edge[1])
                 seqs.pop()
                 paths.pop()
@@ -398,7 +404,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
                 else:
                     paths.append(edge[:3] + (len(new_read_set),))
 
-                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes)
+                path(graph, edge[1], new_read_set, direction, strand, visited_ins_nodes, edge_reads)
                 seqs.pop()
                 paths.pop()
 
@@ -420,7 +426,7 @@ def find_path_dfs(chromosome, bam, graph_outer, start_node_outer, read_set, dire
                 elif strand == '-':
                     possible_seq_list.append(''.join([reverse_complement(seq) for seq in seqs]))
 
-    path(graph_outer, start_node_outer, read_set, direction, strand, visited_ins_nodes)
+    path(graph_outer, start_node_outer, read_set, direction, strand, visited_ins_nodes, edge_reads)
     return possible_path_list, possible_seq_list, possible_path_readsets
 
 
@@ -760,6 +766,7 @@ def main():
 
     kmer_dat = _open_bam(args.kmer_bam)
 
+    edge_reads = collections.defaultdict(set)
     unique_path_edges = collections.defaultdict(set)
     unique_path_splices = collections.defaultdict(set)
     validated_path = {}
@@ -844,7 +851,7 @@ def main():
                     upstream_paths, upstream_seqs, upstream_read_set = find_path_dfs(chromosome, bam, gene.reverse(),
                                                                                         unique_path[0][0],
                                                                                         read_set, -1, '+', genome,
-                                                                                     min_coverage,
+                                                                                     min_coverage, edge_reads,
                                                                         annotated_transcripts[transcript].start_codon[
                                                                         -1].location.end.position)
 
@@ -881,7 +888,7 @@ def main():
                         full_downstream_paths, full_downstream_seqs, _ = find_path_dfs(chromosome, bam, gene,
                                                                                        unique_path[-1][1],
                                                                                        read_set, +1, '+', genome,
-                                                                                       min_coverage)
+                                                                                       min_coverage, edge_reads)
 
                         if len(full_upstream_paths) and len(full_downstream_paths):
                             for combination in itertools.product(range(len(full_upstream_paths)),
@@ -1032,6 +1039,7 @@ def main():
                     upstream_paths, upstream_seqs, upstream_read_set = find_path_dfs(chromosome, bam, gene,
                                                                                      unique_path[-1][1], read_set,
                                                                                      +1, '-', genome, min_coverage,
+                                                                                     edge_reads,
                                                                                      annotated_transcripts[
                                                                                          transcript].start_codon[
                                                                                          0].location.start.position)
@@ -1072,7 +1080,8 @@ def main():
                                                                                    0].location.start.position:
                         full_downstream_paths, full_downstream_seqs, _ = find_path_dfs(chromosome, bam, gene.reverse(),
                                                                                        unique_path[0][0], read_set,
-                                                                                       -1, '-', genome, min_coverage)
+                                                                                       -1, '-', genome, min_coverage,
+                                                                                       edge_reads)
                         if len(full_upstream_paths) and len(full_downstream_paths):
                             for combination in itertools.product(range(len(full_upstream_paths)),
                                                                  range(len(full_downstream_paths))):
