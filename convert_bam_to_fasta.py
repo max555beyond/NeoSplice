@@ -18,10 +18,10 @@ def main():
                 not read.is_duplicate and not read.is_supplementary:
             if read.is_read1:
                 outf1.write(">" + read.query_name + '\n')
-                outf1.write(read.query_alignment_sequence + '\n')
+                outf1.write(read.query_alignment_sequence.upper() + '\n')
             elif read.is_read2:
                 outf2.write(">" + read.query_name + '\n')
-                outf2.write(read.query_alignment_sequence + '\n')
+                outf2.write(read.query_alignment_sequence.upper() + '\n')
 
     samfile.close()
     outf1.close()

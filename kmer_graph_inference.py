@@ -205,8 +205,8 @@ def _get_exon_edge_read(chromosome, edge, bam, direction, genome):
     read_pos = collections.defaultdict(set)
     for column in bam.pileup(chromosome, edge[0], edge[1], truncate=True, max_depth=200000):
         for read in column.pileups:
-            if not read.is_refskip and not read.is_del and read.alignment.query_sequence[read.query_position] == \
-                    genome[chromosome][column.reference_pos].seq:
+            if not read.is_refskip and not read.is_del and read.alignment.query_sequence[read.query_position].upper() == \
+                    genome[chromosome][column.reference_pos].seq.upper():
                 read_pos[column.reference_pos].add(read.alignment.query_name)
 
     return set.union(*read_pos.values()) if read_pos else set()
@@ -219,8 +219,8 @@ def _get_snp_read(chromosome, edge, bam, direction):
     reads = set()
     for column in bam.pileup(chromosome, edge[0], edge[1], truncate=True, max_depth=200000):
         for read in column.pileups:
-            if not read.is_refskip and not read.is_del and read.alignment.query_sequence[read.query_position] == edge[
-                    2]:
+            if not read.is_refskip and not read.is_del and read.alignment.query_sequence[read.query_position].upper()\
+                    == edge[2]:
                 reads.add(read.alignment.query_name)
 
     return reads
@@ -634,7 +634,7 @@ def output_peptide(mut_peptide, mut_sequence, result_file, fasta_file, length, u
     for i in range(0, len(mut_peptide) - length + 1):
         peptide_path = get_supported_path(upstream_len - 3 * i, length * 3 - upstream_len + 3 * i, novel_splice, strand,
                                           selected_path)
-        if (mut_peptide[i:i+length], novel_splice) not in generated_peptides:
+        if (mut_peptide[i:i+length], novel_splice) not in generated_peptides and 'X' not in mut_peptide[i:i+length]:
             fasta_file.write(">peptide{}".format(peptide_count) + '\n' + mut_peptide[i:i+length] + '\n')
             result_file.write(mut_peptide[i:i + length] + '\t' + mut_sequence[3 * i:3 * (
                     i + length)] + '\t' + chromosome + '\t' + str(peptide_path) + '\t' + str(full_path) + '\t' +

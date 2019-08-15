@@ -33,7 +33,7 @@ def main():
         if not read.is_unmapped and not read.is_secondary and read.is_proper_pair and read.is_paired and\
                 not read.is_duplicate and not read.is_supplementary and 'N' in read.cigarstring:
 
-            for end, kmer in trie.iter(read.query_sequence):
+            for end, kmer in trie.iter(read.query_sequence.upper()):
                 start_index = end - len(kmer) + 1
                 end_index = end + 1
 
@@ -45,7 +45,7 @@ def main():
 
                 kmer_read = pysam.AlignedSegment()
                 kmer_read.query_name = read.query_name
-                kmer_read.query_sequence = read.query_sequence[start_index:end_index]
+                kmer_read.query_sequence = read.query_sequence[start_index:end_index].upper()
                 kmer_read.flag = read.flag
                 kmer_read.reference_id = read.reference_id
 
