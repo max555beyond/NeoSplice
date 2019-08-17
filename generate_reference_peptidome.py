@@ -71,7 +71,7 @@ def translate(seq, transcript, num):
         frameseq = seq[i:i+3*num]
         if 'N' not in frameseq:
             peptide = ''.join([gencode.get(frameseq[3*j:3*j+3], 'X') for j in range(len(frameseq)//3)])
-            if '_' in peptide or 'X' in peptide:
+            if '_' in peptide:
                 logging.info("wrong peptide: {}".format(peptide))
                 break
             peptide_list.append(Polypeptide(peptide, frameseq, transcript))
