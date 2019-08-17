@@ -39,7 +39,7 @@ def complement(base):
     elif base.upper() == 'C':
         return 'G'
     else:
-        raise AssertionError("Unexpected value of nucleotide")
+        raise AssertionError("Unexpected value of nucleotide {}".format(base.upper()))
 
 
 def find_sequence(chrnum, start, end, genome):
