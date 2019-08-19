@@ -107,6 +107,8 @@ def complement(base):
         return 'C'
     elif base.upper() == 'C':
         return 'G'
+    elif base.upper() == 'N':
+        return 'N'
     else:
         raise AssertionError("Unexpected value of nucleotide")
 
